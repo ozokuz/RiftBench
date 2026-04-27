@@ -9,7 +9,8 @@ var api = builder.AddProject<Projects.RiftBench_API>("api")
     .WaitFor(postgres)
     .WithExternalHttpEndpoints();
 
-builder.AddViteApp("web", "../web")
+builder.AddJavaScriptApp("web", "../web")
+    .WithHttpEndpoint(port: 3000, env: "PORT")
     .WithPnpm(false)
     .WithReference(api)
     .WaitFor(api);
