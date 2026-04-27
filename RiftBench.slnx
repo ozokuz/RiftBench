@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="RiftBench.API/RiftBench.API.csproj" />
+  <Project Path="RiftBench.AppHost/RiftBench.AppHost.csproj" />
+</Solution>

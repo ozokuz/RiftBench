@@ -1,0 +1,20 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.4">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>aa5fc0d1-11d8-42b6-bb97-254f993f0844</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\RiftBench.API\RiftBench.API.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.2.4" />
+      <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.2.4" />
+    </ItemGroup>
+
+</Project>
