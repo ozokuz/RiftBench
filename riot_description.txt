@@ -1,1 +1,5 @@
-RiftBench is a deck creation sandbox for Riftbound. It will provide players a nice way to build decks by being able to organize cards into categories and be able to drag them from one pile to another. There will also be a nice set of filters to easily sort through and find cards that fit the decks players are building.
+RiftBench will be a deck creation sandbox for Riftbound. It will provide players a nice way to build decks by being able to organize cards into categories and be able to drag them from one pile to another. There will also be a nice set of filters to easily sort through and find cards that fit the decks players are building.
+
+Here is a small mockup of what the deck builder will mostly look like:
+https://design.penpot.app/#/view?file-id=614162e1-9f0e-816a-8007-ef02146e94b0&page-id=614162e1-9f0e-816a-8007-ef02146e94b1&section=interactions&index=0&interactions-mode=show-on-click&share-id=95ecf5e0-91fe-80de-8007-f0b05769d318
+It is very quickly made so it is missing some features.
