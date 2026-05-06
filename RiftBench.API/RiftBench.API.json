@@ -5,7 +5,7 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/auth/login/github": {
+    "/auth/login/github": {
       "get": {
         "tags": [
           "RiftBench.API"
@@ -26,7 +26,7 @@
         }
       }
     },
-    "/api/auth/login/discord": {
+    "/auth/login/discord": {
       "get": {
         "tags": [
           "RiftBench.API"
@@ -47,7 +47,7 @@
         }
       }
     },
-    "/api/callback/login/{provider}": {
+    "/auth/callback/{provider}": {
       "get": {
         "tags": [
           "RiftBench.API"
@@ -69,11 +69,48 @@
         }
       }
     },
-    "/api/me": {
-      "get": {
+    "/auth/exchange": {
+      "post": {
         "tags": [
           "RiftBench.API"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExchangeExternalLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "RiftBench.API"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -81,7 +118,26 @@
         }
       }
     },
-    "/api/auth/register": {
+    "/me": {
+      "get": {
+        "tags": [
+          "RiftBench.API"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -113,7 +169,7 @@
         }
       }
     },
-    "/api/auth/login": {
+    "/auth/login": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -158,7 +214,7 @@
         }
       }
     },
-    "/api/auth/refresh": {
+    "/auth/refresh": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -187,12 +243,12 @@
         }
       }
     },
-    "/api/auth/confirmEmail": {
+    "/auth/confirmEmail": {
       "get": {
         "tags": [
           "RiftBench.API"
         ],
-        "operationId": "MapIdentityApi-/api/auth/confirmEmail",
+        "operationId": "MapIdentityApi-/auth/confirmEmail",
         "parameters": [
           {
             "name": "userId",
@@ -225,7 +281,7 @@
         }
       }
     },
-    "/api/auth/resendConfirmationEmail": {
+    "/auth/resendConfirmationEmail": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -247,7 +303,7 @@
         }
       }
     },
-    "/api/auth/forgotPassword": {
+    "/auth/forgotPassword": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -279,7 +335,7 @@
         }
       }
     },
-    "/api/auth/resetPassword": {
+    "/auth/resetPassword": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -311,7 +367,7 @@
         }
       }
     },
-    "/api/auth/manage/2fa": {
+    "/auth/manage/2fa": {
       "post": {
         "tags": [
           "RiftBench.API"
@@ -353,7 +409,7 @@
         }
       }
     },
-    "/api/auth/manage/info": {
+    "/auth/manage/info": {
       "get": {
         "tags": [
           "RiftBench.API"
@@ -425,7 +481,7 @@
         }
       }
     },
-    "/api/cards": {
+    "/cards": {
       "get": {
         "tags": [
           "Cards"
@@ -458,14 +514,21 @@
             "type": "string"
           },
           "expiresIn": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ExchangeExternalLoginRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
             "type": "string"
           }
         }
@@ -497,11 +560,9 @@
             ]
           },
           "status": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -688,11 +749,7 @@
             "type": "string"
           },
           "recoveryCodesLeft": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "recoveryCodes": {
@@ -709,6 +766,25 @@
           },
           "isMachineRemembered": {
             "type": "boolean"
+          }
+        }
+      },
+      "UserInfoDto": {
+        "required": [
+          "userId",
+          "email",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
           }
         }
       }

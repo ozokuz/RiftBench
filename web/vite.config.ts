@@ -5,8 +5,7 @@ import viteReact from "@vitejs/plugin-react"
 import viteTsConfigPaths from "vite-tsconfig-paths"
 import tailwindcss from "@tailwindcss/vite"
 import {nitro} from "nitro/vite"
-
-console.log(process.env.API_HTTP);
+import {heyApiPlugin} from "@hey-api/vite-plugin";
 
 const config = defineConfig({
     plugins: [
@@ -19,6 +18,28 @@ const config = defineConfig({
         tailwindcss(),
         tanstackStart(),
         viteReact(),
+        heyApiPlugin({
+            config: {
+                input: {
+                    path: '../RiftBench.API/RiftBench.API.json',
+                    watch: true
+                },
+                output: 'src/client',
+                plugins: [
+                    'zod',
+                    {
+                        enums: 'javascript',
+                        name: '@hey-api/typescript',
+                    },
+                    {
+                        name: '@hey-api/sdk',
+                        auth: false,
+                    },
+                    '@hey-api/client-ofetch',
+                    '@tanstack/react-query',
+                ]
+            }
+        })
     ],
 })
 

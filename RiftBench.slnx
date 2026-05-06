@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="RiftBench.API/RiftBench.API.csproj" />
-  <Project Path="RiftBench.AppHost/RiftBench.AppHost.csproj" />
+  <Project Path="RiftBench.Data/RiftBench.Data.csproj" />
+  <Project Path="RiftBench.Ingest/RiftBench.Ingest.csproj" />
+  <Project Path="Riftcodex.Client/Riftcodex.Client.csproj" />
 </Solution>

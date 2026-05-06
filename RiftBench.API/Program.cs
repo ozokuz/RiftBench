@@ -1,26 +1,50 @@
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Serialization;
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 using OpenIddict.Abstractions;
 using OpenIddict.Client.AspNetCore;
 using OpenIddict.Client.WebIntegration;
 
+using RiftBench.API;
 using RiftBench.API.BadDesign;
-using RiftBench.API.Data;
 using RiftBench.API.Models;
+using RiftBench.API.Models.Auth;
+using RiftBench.API.Services;
+using RiftBench.Data;
+using RiftBench.Data.Entities;
+
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy.WithOrigins(builder.Configuration["WebBase"] ?? "http://localhost:xxxx")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddScoped<IOneTimeLoginCodeStore, OneTimeLoginCodeStore>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, NoOpEmailSender<ApplicationUser>>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("appdata"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.UseOpenIddict();
 });
 
@@ -28,16 +52,16 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = false;
     })
-    .AddRoles<IdentityRole>()
+    .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-});
+    options.DefaultScheme = IdentityConstants.BearerScheme;
+    options.DefaultSignInScheme = IdentityConstants.BearerScheme;
+}).AddBearerToken(IdentityConstants.BearerScheme);
 
 builder.Services.AddOpenIddict()
     .AddCore(options =>
@@ -49,38 +73,60 @@ builder.Services.AddOpenIddict()
     {
         options.AllowAuthorizationCodeFlow();
 
-        options.AddDevelopmentEncryptionCertificate()
-            .AddDevelopmentSigningCertificate();
+        if (builder.Environment.IsDevelopment())
+        {
+            options.AddDevelopmentEncryptionCertificate()
+                .AddDevelopmentSigningCertificate();
 
-        options.UseAspNetCore()
-            .EnableRedirectionEndpointPassthrough();
+            options.UseAspNetCore()
+                .EnableRedirectionEndpointPassthrough().DisableTransportSecurityRequirement();
+        }
+        else
+        {
+            options.UseAspNetCore()
+                .EnableRedirectionEndpointPassthrough();
+        }
 
         options.UseSystemNetHttp();
 
         options.UseWebProviders()
-            .AddGitHub(options =>
+            .AddGitHub(ghOptions =>
             {
-                options.SetClientId(builder.Configuration["Authentication:GitHub:ClientId"]!)
+                ghOptions.SetClientId(builder.Configuration["Authentication:GitHub:ClientId"]!)
                     .SetClientSecret(builder.Configuration["Authentication:GitHub:ClientSecret"]!)
-                    .SetRedirectUri("api/callback/login/github");
+                    .AddScopes("user:email")
+                    .SetRedirectUri("auth/callback/github");
             })
-            .AddDiscord(options =>
+            .AddDiscord(dcOptions =>
             {
-                options.SetClientId(builder.Configuration["Authentication:Discord:ClientId"]!)
+                dcOptions.SetClientId(builder.Configuration["Authentication:Discord:ClientId"]!)
                     .SetClientSecret(builder.Configuration["Authentication:Discord:ClientSecret"]!)
-                    .SetRedirectUri("api/callback/login/discord");
+                    .AddScopes("email")
+                    .SetRedirectUri("auth/callback/discord");
             });
     });
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllers(options =>
+builder.Services.AddControllers();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.Conventions.Insert(0, new RoutePrefixConvention("api"));
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
 builder.Services.AddOpenApi();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 
 var app = builder.Build();
+var webBase = app.Configuration["WebBase"] ?? "/";
+
+app.UseForwardedHeaders();
+app.UseCors("Frontend");
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseExceptionHandler(exceptionApp =>
     exceptionApp.Run(async context => await Results.Problem().ExecuteAsync(context)));
@@ -88,57 +134,48 @@ app.UseExceptionHandler(exceptionApp =>
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/openapi/v1.json", "v1");
-    });
+    app.MapScalarApiReference("/docs");
 }
 
-app.UseAuthorization();
-
-var api = app.MapGroup("/api");
-
-api.MapGet("/auth/login/github", (HttpContext http, string? returnUrl) =>
+app.MapGet("/auth/login/github", (HttpContext http, string? returnUrl) =>
 {
     var properties = new AuthenticationProperties
     {
         RedirectUri = returnUrl is { Length: > 0 } && returnUrl.StartsWith("/")
             ? returnUrl
-            : "/"
+            : webBase,
     };
 
     return Results.Challenge(properties, [OpenIddictClientWebIntegrationConstants.Providers.GitHub]);
 });
-api.MapGet("/auth/login/discord", (HttpContext http, string? returnUrl) =>
+app.MapGet("/auth/login/discord", (HttpContext http, string? returnUrl) =>
 {
     var properties = new AuthenticationProperties
     {
         RedirectUri = returnUrl is { Length: > 0 } && returnUrl.StartsWith("/")
             ? returnUrl
-            : "/"
+            : webBase
     };
 
     return Results.Challenge(properties, [OpenIddictClientWebIntegrationConstants.Providers.Discord]);
 });
 
-api.MapMethods(
-    "/callback/login/{provider}",
+app.MapMethods(
+    "/auth/callback/{provider}",
     ["GET", "POST"],
     async (
         HttpContext http,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager) =>
+        IOneTimeLoginCodeStore codeStore) =>
     {
         var result = await http.AuthenticateAsync(
             OpenIddictClientAspNetCoreDefaults.AuthenticationScheme);
 
-        if (!result.Succeeded || result.Principal is null)
+        if (!result.Succeeded || result.Principal is null || result.Principal.Identity?.IsAuthenticated != true)
             return Results.Unauthorized();
 
         var provider =
-            result.Principal.GetClaim(OpenIddictConstants.Claims.Private.RegistrationId)
-            ?? "unknown";
+            result.Principal.GetClaim(OpenIddictConstants.Claims.Private.RegistrationId);
 
         var providerUserId =
             result.Principal.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -147,18 +184,33 @@ api.MapMethods(
         var email = result.Principal.FindFirstValue(ClaimTypes.Email);
         var name = result.Principal.FindFirstValue(ClaimTypes.Name);
 
-        if (providerUserId is null)
+        if (provider is null || providerUserId is null)
             return Results.BadRequest("External provider did not return a user id.");
 
-        var user = await userManager.FindByLoginAsync(provider, providerUserId);
+        ApplicationUser? user = null;
+        var existingLogin = await userManager.FindByLoginAsync(provider, providerUserId);
 
-        if (user is null)
+        if (existingLogin is not null)
         {
-            user = new ApplicationUser { UserName = email ?? $"{provider}:{providerUserId}", Email = email };
+            user = existingLogin;
+        }
+        else
+        {
+            if (email is null)
+            {
+                return Results.BadRequest("Email Required");
+            }
 
-            var createResult = await userManager.CreateAsync(user);
-            if (!createResult.Succeeded)
-                return Results.BadRequest(createResult.Errors);
+            user = await userManager.FindByEmailAsync(email);
+
+            if (user is null)
+            {
+                user = new ApplicationUser { UserName = name ?? email, Email = email, EmailConfirmed = true };
+
+                var createResult = await userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                    return Results.BadRequest(createResult.Errors);
+            }
 
             var loginInfo = new UserLoginInfo(
                 provider,
@@ -170,19 +222,61 @@ api.MapMethods(
                 return Results.BadRequest(addLoginResult.Errors);
         }
 
-        await signInManager.SignInAsync(user, isPersistent: true);
+        var loginCode = await codeStore.CreateAsync(user.Id);
 
         var redirectUrl = result.Properties?.RedirectUri ?? "/";
-        return Results.Redirect(redirectUrl);
+        return Results.Redirect(
+            $"{webBase}/auth?redirect_url={Uri.EscapeDataString(redirectUrl)}?auth_code={Uri.EscapeDataString(loginCode)}");
     });
 
-api.MapGet("/me",
-        (HttpContext context, ClaimsPrincipal user) => Results.Ok(
-            $"It is me {user.FindFirstValue(ClaimTypes.Name)}, with email: {user.FindFirstValue(ClaimTypes.Email)}"))
+app.MapPost("/auth/exchange", async (
+    ExchangeExternalLoginRequest request,
+    IOneTimeLoginCodeStore codeStore,
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager) =>
+{
+    var userId = await codeStore.RedeemAsync(request.Code);
+
+    if (userId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var user = await userManager.FindByIdAsync(userId);
+
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    signInManager.AuthenticationScheme = IdentityConstants.BearerScheme;
+
+    await signInManager.SignInAsync(
+        user,
+        isPersistent: false,
+        authenticationMethod: "external");
+
+    return Results.Empty;
+}).Produces<AccessTokenResponse>();
+
+app.MapPost("/auth/logout", async ([FromBody] object empty, [FromServices] SignInManager<IdentityUser> signInManager) =>
+    {
+        if (empty == null)
+        {
+            return Results.Unauthorized();
+        }
+
+        await signInManager.SignOutAsync();
+        return Results.Ok();
+    })
     .RequireAuthorization();
 
-api.MapGroup("/auth").MapIdentityApi<ApplicationUser>();
-
+app.MapGet("/me",
+        (HttpContext context, ClaimsPrincipal user) => Results.Ok(
+            new UserInfoDto(Username: user.FindFirstValue(ClaimTypes.Name),
+                Email: user.FindFirstValue(ClaimTypes.Email), UserId: user.FindFirstValue(ClaimTypes.NameIdentifier))))
+    .Produces<UserInfoDto>()
+    .RequireAuthorization();
+app.MapGroup("/auth").MapIdentityApi<ApplicationUser>();
 app.MapControllers();
-
 app.Run();

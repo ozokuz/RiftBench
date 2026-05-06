@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+
+ARG DOTNET_VERSION=10.0
+
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS restore
+WORKDIR /src
+
+COPY RiftBench.slnx ./
+COPY RiftBench.API/RiftBench.API.csproj RiftBench.API/
+COPY RiftBench.Core/RiftBench.Core.csproj RiftBench.Core/
+COPY RiftBench.Data/RiftBench.Data.csproj RiftBench.Data/
+
+RUN dotnet restore RiftBench.API/RiftBench.API.csproj
+
+FROM restore AS build
+COPY . .
+RUN dotnet publish RiftBench.API/RiftBench.API.csproj \
+    -c Release \
+    -o /app/api \
+    --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine AS api
+WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 8080
+COPY --from=build /app/api ./
+ENTRYPOINT ["dotnet", "RiftBench.API.dll"]
+
+FROM build AS migrate
+ENV PATH="${PATH}:/root/.dotnet/tools"
+RUN dotnet tool install --global dotnet-ef
+ENTRYPOINT ["dotnet", "ef", "database", "update", "--project", "RiftBench.Data/RiftBench.Data.csproj", "--startup-project", "RiftBench.API/RiftBench.API.csproj", "--context", "AppDbContext"]

@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1.7
+
+ARG DOTNET_VERSION=10.0
+
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS restore
+WORKDIR /src
+
+COPY RiftBench.slnx ./
+COPY RiftBench.Core/RiftBench.Core.csproj RiftBench.Core/
+COPY RiftBench.Data/RiftBench.Data.csproj RiftBench.Data/
+COPY RiftBench.Ingest/RiftBench.Ingest.csproj RiftBench.Ingest/
+COPY Riftcodex.Client/Riftcodex.Client.csproj Riftcodex.Client/
+
+RUN dotnet restore RiftBench.Ingest/RiftBench.Ingest.csproj
+
+FROM restore AS build
+COPY . .
+RUN dotnet publish RiftBench.Ingest/RiftBench.Ingest.csproj \
+    -c Release \
+    -o /app/ingest \
+    --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine AS ingest
+WORKDIR /app
+ENV ASPNETCORE_ENVIRONMENT=Production
+COPY --from=build /app/ingest ./
+ENTRYPOINT ["dotnet", "RiftBench.Ingest.dll"]
