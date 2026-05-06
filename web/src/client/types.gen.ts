@@ -11,6 +11,124 @@ export type AccessTokenResponse = {
     refreshToken: string;
 };
 
+export type CardDomain = number;
+
+export type CardRarity = number;
+
+export type CardSummaryDto = {
+    id: string;
+    riftboundId: string;
+    setCode: string;
+    setLabel: string;
+    name: string;
+    cleanName: string;
+    collectorNumber: number;
+    type: CardType;
+    supertype: CardSupertype;
+    rarity: CardRarity;
+    energy: null | number;
+    might: null | number;
+    power: null | number;
+    domains: Array<CardDomain>;
+    imageUrl: null | string;
+    alternateArt: boolean;
+    overnumbered: boolean;
+    signature: boolean;
+};
+
+export type CardSupertype = number;
+
+export type CardType = number;
+
+export type CreateDeckFolderRequest = {
+    name: string;
+    parentFolderId: null | string;
+    sortOrder: number;
+};
+
+export type CreateDeckRequest = {
+    name: string;
+    description: null | string;
+    folderId: null | string;
+    visibility: DeckVisibility;
+};
+
+export type DeckCardDto = {
+    cardId: string;
+    categoryId: null | string;
+    quantity: number;
+    sortOrder: number;
+    notes: null | string;
+    card: CardSummaryDto;
+};
+
+export type DeckCategoryDto = {
+    id: string;
+    name: string;
+    sortOrder: number;
+    createdAt: string;
+};
+
+export type DeckDetailDto = {
+    id: string;
+    userId: string;
+    username: null | string;
+    folderId: null | string;
+    name: string;
+    description: null | string;
+    visibility: DeckVisibility;
+    isArchived: boolean;
+    categories: Array<DeckCategoryDto>;
+    cards: Array<DeckCardDto>;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type DeckFolderDto = {
+    id: string;
+    userId: string;
+    parentFolderId: null | string;
+    name: string;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type DeckFolderNodeDto = {
+    id: string;
+    parentFolderId: null | string;
+    name: string;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+    children: Array<DeckFolderNodeDto>;
+    decks: Array<DeckListItemDto>;
+};
+
+export type DeckListItemDto = {
+    id: string;
+    userId: string;
+    username: null | string;
+    folderId: null | string;
+    name: string;
+    description: null | string;
+    visibility: DeckVisibility;
+    isArchived: boolean;
+    cardCount: number;
+    totalQuantity: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type DeckTreeDto = {
+    folders: Array<DeckFolderNodeDto>;
+    decks: Array<DeckListItemDto>;
+};
+
+export type DeckVisibility = number;
+
+export type DomainFilterMode = number;
+
 export type ExchangeExternalLoginRequest = {
     code: string;
 };
@@ -48,6 +166,28 @@ export type LoginRequest = {
     twoFactorRecoveryCode?: null | string;
 };
 
+export type PagedResultDtoOfCardSummaryDto = {
+    items: Array<CardSummaryDto>;
+    page: number;
+    pageSize: number;
+    totalCount: number;
+};
+
+export type PagedResultDtoOfDeckListItemDto = {
+    items: Array<DeckListItemDto>;
+    page: number;
+    pageSize: number;
+    totalCount: number;
+};
+
+export type ProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
+};
+
 export type RefreshRequest = {
     refreshToken: string;
 };
@@ -55,6 +195,11 @@ export type RefreshRequest = {
 export type RegisterRequest = {
     email: string;
     password: string;
+};
+
+export type ReplaceDeckContentsRequest = {
+    categories: Array<UpsertDeckCategoryRequest>;
+    cards: Array<UpsertDeckCardRequest>;
 };
 
 export type ResendConfirmationEmailRequest = {
@@ -83,10 +228,49 @@ export type TwoFactorResponse = {
     isMachineRemembered: boolean;
 };
 
+export type UpdateDeckFolderRequest = {
+    name: string;
+    parentFolderId: null | string;
+    sortOrder: number;
+};
+
+export type UpdateDeckSettingsRequest = {
+    name: string;
+    description: null | string;
+    folderId: null | string;
+    visibility: DeckVisibility;
+    isArchived: boolean;
+};
+
+export type UpsertDeckCardRequest = {
+    cardId: string;
+    categoryId: null | string;
+    quantity: number;
+    sortOrder: number;
+    notes: null | string;
+};
+
+export type UpsertDeckCategoryRequest = {
+    id: string;
+    name: string;
+    sortOrder: number;
+};
+
 export type UserInfoDto = {
     userId: string;
     email: string;
     username: string;
+};
+
+export type ValidationProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
+    errors?: {
+        [key: string]: Array<string>;
+    };
 };
 
 export type GetAuthLoginGithubData = {
@@ -421,7 +605,20 @@ export type PostAuthManageInfoResponse = PostAuthManageInfoResponses[keyof PostA
 export type GetCardsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        Search?: string;
+        Domains?: Array<CardDomain>;
+        DomainMode?: DomainFilterMode;
+        Rarities?: Array<CardRarity>;
+        Types?: Array<CardType>;
+        Supertypes?: Array<CardSupertype>;
+        Energy?: string;
+        Might?: string;
+        SortBy?: string;
+        SortDescending?: boolean;
+        Page?: number;
+        PageSize?: number;
+    };
     url: '/cards';
 };
 
@@ -429,5 +626,299 @@ export type GetCardsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: PagedResultDtoOfCardSummaryDto;
 };
+
+export type GetCardsResponse = GetCardsResponses[keyof GetCardsResponses];
+
+export type GetDecksBrowseData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        pageSize?: number;
+    };
+    url: '/decks/browse';
+};
+
+export type GetDecksBrowseResponses = {
+    /**
+     * OK
+     */
+    200: PagedResultDtoOfDeckListItemDto;
+};
+
+export type GetDecksBrowseResponse = GetDecksBrowseResponses[keyof GetDecksBrowseResponses];
+
+export type GetUsersByUserIdDecksData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/users/{userId}/decks';
+};
+
+export type GetUsersByUserIdDecksErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetUsersByUserIdDecksError = GetUsersByUserIdDecksErrors[keyof GetUsersByUserIdDecksErrors];
+
+export type GetUsersByUserIdDecksResponses = {
+    /**
+     * OK
+     */
+    200: DeckTreeDto;
+};
+
+export type GetUsersByUserIdDecksResponse = GetUsersByUserIdDecksResponses[keyof GetUsersByUserIdDecksResponses];
+
+export type GetDecksData = {
+    body?: never;
+    path?: never;
+    query?: {
+        includeArchived?: boolean;
+    };
+    url: '/decks';
+};
+
+export type GetDecksResponses = {
+    /**
+     * OK
+     */
+    200: DeckTreeDto;
+};
+
+export type GetDecksResponse = GetDecksResponses[keyof GetDecksResponses];
+
+export type PostDecksData = {
+    body: CreateDeckRequest;
+    path?: never;
+    query?: never;
+    url: '/decks';
+};
+
+export type PostDecksErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type PostDecksError = PostDecksErrors[keyof PostDecksErrors];
+
+export type PostDecksResponses = {
+    /**
+     * Created
+     */
+    201: DeckDetailDto;
+};
+
+export type PostDecksResponse = PostDecksResponses[keyof PostDecksResponses];
+
+export type DeleteDecksByDeckIdData = {
+    body?: never;
+    path: {
+        deckId: string;
+    };
+    query?: never;
+    url: '/decks/{deckId}';
+};
+
+export type DeleteDecksByDeckIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type DeleteDecksByDeckIdError = DeleteDecksByDeckIdErrors[keyof DeleteDecksByDeckIdErrors];
+
+export type DeleteDecksByDeckIdResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type DeleteDecksByDeckIdResponse = DeleteDecksByDeckIdResponses[keyof DeleteDecksByDeckIdResponses];
+
+export type GetDecksByDeckIdData = {
+    body?: never;
+    path: {
+        deckId: string;
+    };
+    query?: never;
+    url: '/decks/{deckId}';
+};
+
+export type GetDecksByDeckIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetDecksByDeckIdError = GetDecksByDeckIdErrors[keyof GetDecksByDeckIdErrors];
+
+export type GetDecksByDeckIdResponses = {
+    /**
+     * OK
+     */
+    200: DeckDetailDto;
+};
+
+export type GetDecksByDeckIdResponse = GetDecksByDeckIdResponses[keyof GetDecksByDeckIdResponses];
+
+export type PutDecksByDeckIdSettingsData = {
+    body: UpdateDeckSettingsRequest;
+    path: {
+        deckId: string;
+    };
+    query?: never;
+    url: '/decks/{deckId}/settings';
+};
+
+export type PutDecksByDeckIdSettingsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type PutDecksByDeckIdSettingsError = PutDecksByDeckIdSettingsErrors[keyof PutDecksByDeckIdSettingsErrors];
+
+export type PutDecksByDeckIdSettingsResponses = {
+    /**
+     * OK
+     */
+    200: DeckDetailDto;
+};
+
+export type PutDecksByDeckIdSettingsResponse = PutDecksByDeckIdSettingsResponses[keyof PutDecksByDeckIdSettingsResponses];
+
+export type PutDecksByDeckIdCardsData = {
+    body: ReplaceDeckContentsRequest;
+    path: {
+        deckId: string;
+    };
+    query?: never;
+    url: '/decks/{deckId}/cards';
+};
+
+export type PutDecksByDeckIdCardsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type PutDecksByDeckIdCardsError = PutDecksByDeckIdCardsErrors[keyof PutDecksByDeckIdCardsErrors];
+
+export type PutDecksByDeckIdCardsResponses = {
+    /**
+     * OK
+     */
+    200: DeckDetailDto;
+};
+
+export type PutDecksByDeckIdCardsResponse = PutDecksByDeckIdCardsResponses[keyof PutDecksByDeckIdCardsResponses];
+
+export type PostDecksFoldersData = {
+    body: CreateDeckFolderRequest;
+    path?: never;
+    query?: never;
+    url: '/decks/folders';
+};
+
+export type PostDecksFoldersErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type PostDecksFoldersError = PostDecksFoldersErrors[keyof PostDecksFoldersErrors];
+
+export type PostDecksFoldersResponses = {
+    /**
+     * Created
+     */
+    201: DeckFolderDto;
+};
+
+export type PostDecksFoldersResponse = PostDecksFoldersResponses[keyof PostDecksFoldersResponses];
+
+export type DeleteDecksFoldersByFolderIdData = {
+    body?: never;
+    path: {
+        folderId: string;
+    };
+    query?: never;
+    url: '/decks/folders/{folderId}';
+};
+
+export type DeleteDecksFoldersByFolderIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+    /**
+     * Conflict
+     */
+    409: ProblemDetails;
+};
+
+export type DeleteDecksFoldersByFolderIdError = DeleteDecksFoldersByFolderIdErrors[keyof DeleteDecksFoldersByFolderIdErrors];
+
+export type DeleteDecksFoldersByFolderIdResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type DeleteDecksFoldersByFolderIdResponse = DeleteDecksFoldersByFolderIdResponses[keyof DeleteDecksFoldersByFolderIdResponses];
+
+export type PutDecksFoldersByFolderIdData = {
+    body: UpdateDeckFolderRequest;
+    path: {
+        folderId: string;
+    };
+    query?: never;
+    url: '/decks/folders/{folderId}';
+};
+
+export type PutDecksFoldersByFolderIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type PutDecksFoldersByFolderIdError = PutDecksFoldersByFolderIdErrors[keyof PutDecksFoldersByFolderIdErrors];
+
+export type PutDecksFoldersByFolderIdResponses = {
+    /**
+     * OK
+     */
+    200: DeckFolderDto;
+};
+
+export type PutDecksFoldersByFolderIdResponse = PutDecksFoldersByFolderIdResponses[keyof PutDecksFoldersByFolderIdResponses];

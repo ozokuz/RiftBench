@@ -9,6 +9,124 @@ export const zAccessTokenResponse = z.object({
     refreshToken: z.string()
 });
 
+export const zCardDomain = z.int();
+
+export const zCardRarity = z.int();
+
+export const zCardSupertype = z.int();
+
+export const zCardType = z.int();
+
+export const zCardSummaryDto = z.object({
+    id: z.uuid(),
+    riftboundId: z.string(),
+    setCode: z.string(),
+    setLabel: z.string(),
+    name: z.string(),
+    cleanName: z.string(),
+    collectorNumber: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    type: zCardType,
+    supertype: zCardSupertype,
+    rarity: zCardRarity,
+    energy: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    might: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    power: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    domains: z.array(zCardDomain),
+    imageUrl: z.string().nullable(),
+    alternateArt: z.boolean(),
+    overnumbered: z.boolean(),
+    signature: z.boolean()
+});
+
+export const zCreateDeckFolderRequest = z.object({
+    name: z.string(),
+    parentFolderId: z.uuid().nullable(),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zDeckCardDto = z.object({
+    cardId: z.uuid(),
+    categoryId: z.uuid().nullable(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    notes: z.string().nullable(),
+    card: zCardSummaryDto
+});
+
+export const zDeckCategoryDto = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    createdAt: z.iso.datetime()
+});
+
+export const zDeckFolderDto = z.object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    parentFolderId: z.uuid().nullable(),
+    name: z.string(),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime()
+});
+
+export const zDeckVisibility = z.int();
+
+export const zCreateDeckRequest = z.object({
+    name: z.string(),
+    description: z.string().nullable(),
+    folderId: z.uuid().nullable(),
+    visibility: zDeckVisibility
+});
+
+export const zDeckDetailDto = z.object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    username: z.string().nullable(),
+    folderId: z.uuid().nullable(),
+    name: z.string(),
+    description: z.string().nullable(),
+    visibility: zDeckVisibility,
+    isArchived: z.boolean(),
+    categories: z.array(zDeckCategoryDto),
+    cards: z.array(zDeckCardDto),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime()
+});
+
+export const zDeckListItemDto = z.object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    username: z.string().nullable(),
+    folderId: z.uuid().nullable(),
+    name: z.string(),
+    description: z.string().nullable(),
+    visibility: zDeckVisibility,
+    isArchived: z.boolean(),
+    cardCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    totalQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime()
+});
+
+export const zDeckFolderNodeDto = z.object({
+    id: z.uuid(),
+    parentFolderId: z.uuid().nullable(),
+    name: z.string(),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    children: z.array(z.lazy((): any => zDeckFolderNodeDto)),
+    decks: z.array(zDeckListItemDto)
+});
+
+export const zDeckTreeDto = z.object({
+    folders: z.array(zDeckFolderNodeDto),
+    decks: z.array(zDeckListItemDto)
+});
+
+export const zDomainFilterMode = z.int();
+
 export const zExchangeExternalLoginRequest = z.object({
     code: z.string()
 });
@@ -42,6 +160,28 @@ export const zLoginRequest = z.object({
     password: z.string(),
     twoFactorCode: z.string().nullish(),
     twoFactorRecoveryCode: z.string().nullish()
+});
+
+export const zPagedResultDtoOfCardSummaryDto = z.object({
+    items: z.array(zCardSummaryDto),
+    page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    pageSize: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    totalCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zPagedResultDtoOfDeckListItemDto = z.object({
+    items: z.array(zDeckListItemDto),
+    page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    pageSize: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    totalCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zProblemDetails = z.object({
+    type: z.string().nullish(),
+    title: z.string().nullish(),
+    status: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullish(),
+    detail: z.string().nullish(),
+    instance: z.string().nullish()
 });
 
 export const zRefreshRequest = z.object({
@@ -79,10 +219,52 @@ export const zTwoFactorResponse = z.object({
     isMachineRemembered: z.boolean()
 });
 
+export const zUpdateDeckFolderRequest = z.object({
+    name: z.string(),
+    parentFolderId: z.uuid().nullable(),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zUpdateDeckSettingsRequest = z.object({
+    name: z.string(),
+    description: z.string().nullable(),
+    folderId: z.uuid().nullable(),
+    visibility: zDeckVisibility,
+    isArchived: z.boolean()
+});
+
+export const zUpsertDeckCardRequest = z.object({
+    cardId: z.uuid(),
+    categoryId: z.uuid().nullable(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    notes: z.string().nullable()
+});
+
+export const zUpsertDeckCategoryRequest = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zReplaceDeckContentsRequest = z.object({
+    categories: z.array(zUpsertDeckCategoryRequest),
+    cards: z.array(zUpsertDeckCardRequest)
+});
+
 export const zUserInfoDto = z.object({
     userId: z.string(),
     email: z.string(),
     username: z.string()
+});
+
+export const zValidationProblemDetails = z.object({
+    type: z.string().nullish(),
+    title: z.string().nullish(),
+    status: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullish(),
+    detail: z.string().nullish(),
+    instance: z.string().nullish(),
+    errors: z.record(z.string(), z.array(z.string())).optional()
 });
 
 export const zGetAuthLoginGithubQuery = z.object({
@@ -158,3 +340,125 @@ export const zPostAuthManageInfoBody = zInfoRequest;
  * OK
  */
 export const zPostAuthManageInfoResponse = zInfoResponse;
+
+export const zGetCardsQuery = z.object({
+    Search: z.string().optional(),
+    Domains: z.array(zCardDomain).optional(),
+    DomainMode: zDomainFilterMode.optional(),
+    Rarities: z.array(zCardRarity).optional(),
+    Types: z.array(zCardType).optional(),
+    Supertypes: z.array(zCardSupertype).optional(),
+    Energy: z.string().optional(),
+    Might: z.string().optional(),
+    SortBy: z.string().optional(),
+    SortDescending: z.boolean().optional(),
+    Page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
+    PageSize: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional()
+});
+
+/**
+ * OK
+ */
+export const zGetCardsResponse = zPagedResultDtoOfCardSummaryDto;
+
+export const zGetDecksBrowseQuery = z.object({
+    page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(1),
+    pageSize: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(50)
+});
+
+/**
+ * OK
+ */
+export const zGetDecksBrowseResponse = zPagedResultDtoOfDeckListItemDto;
+
+export const zGetUsersByUserIdDecksPath = z.object({
+    userId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetUsersByUserIdDecksResponse = zDeckTreeDto;
+
+export const zGetDecksQuery = z.object({
+    includeArchived: z.boolean().optional().default(false)
+});
+
+/**
+ * OK
+ */
+export const zGetDecksResponse = zDeckTreeDto;
+
+export const zPostDecksBody = zCreateDeckRequest;
+
+/**
+ * Created
+ */
+export const zPostDecksResponse = zDeckDetailDto;
+
+export const zDeleteDecksByDeckIdPath = z.object({
+    deckId: z.uuid()
+});
+
+/**
+ * No Content
+ */
+export const zDeleteDecksByDeckIdResponse = z.void();
+
+export const zGetDecksByDeckIdPath = z.object({
+    deckId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetDecksByDeckIdResponse = zDeckDetailDto;
+
+export const zPutDecksByDeckIdSettingsBody = zUpdateDeckSettingsRequest;
+
+export const zPutDecksByDeckIdSettingsPath = z.object({
+    deckId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zPutDecksByDeckIdSettingsResponse = zDeckDetailDto;
+
+export const zPutDecksByDeckIdCardsBody = zReplaceDeckContentsRequest;
+
+export const zPutDecksByDeckIdCardsPath = z.object({
+    deckId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zPutDecksByDeckIdCardsResponse = zDeckDetailDto;
+
+export const zPostDecksFoldersBody = zCreateDeckFolderRequest;
+
+/**
+ * Created
+ */
+export const zPostDecksFoldersResponse = zDeckFolderDto;
+
+export const zDeleteDecksFoldersByFolderIdPath = z.object({
+    folderId: z.uuid()
+});
+
+/**
+ * No Content
+ */
+export const zDeleteDecksFoldersByFolderIdResponse = z.void();
+
+export const zPutDecksFoldersByFolderIdBody = zUpdateDeckFolderRequest;
+
+export const zPutDecksFoldersByFolderIdPath = z.object({
+    folderId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zPutDecksFoldersByFolderIdResponse = zDeckFolderDto;

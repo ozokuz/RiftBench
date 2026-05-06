@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetAuthCallbackByProviderData, GetAuthCallbackByProviderResponses, GetAuthLoginDiscordData, GetAuthLoginDiscordResponses, GetAuthLoginGithubData, GetAuthLoginGithubResponses, GetAuthManageInfoData, GetAuthManageInfoErrors, GetAuthManageInfoResponses, GetCardsData, GetCardsResponses, GetMeData, GetMeResponses, MapIdentityApiAuthConfirmEmailData, MapIdentityApiAuthConfirmEmailResponses, PostAuthCallbackByProviderData, PostAuthCallbackByProviderResponses, PostAuthExchangeData, PostAuthExchangeResponses, PostAuthForgotPasswordData, PostAuthForgotPasswordErrors, PostAuthForgotPasswordResponses, PostAuthLoginData, PostAuthLoginResponses, PostAuthLogoutData, PostAuthLogoutResponses, PostAuthManage2FaData, PostAuthManage2FaErrors, PostAuthManage2FaResponses, PostAuthManageInfoData, PostAuthManageInfoErrors, PostAuthManageInfoResponses, PostAuthRefreshData, PostAuthRefreshResponses, PostAuthRegisterData, PostAuthRegisterErrors, PostAuthRegisterResponses, PostAuthResendConfirmationEmailData, PostAuthResendConfirmationEmailResponses, PostAuthResetPasswordData, PostAuthResetPasswordErrors, PostAuthResetPasswordResponses } from './types.gen';
+import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdErrors, DeleteDecksByDeckIdResponses, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdErrors, DeleteDecksFoldersByFolderIdResponses, GetAuthCallbackByProviderData, GetAuthCallbackByProviderResponses, GetAuthLoginDiscordData, GetAuthLoginDiscordResponses, GetAuthLoginGithubData, GetAuthLoginGithubResponses, GetAuthManageInfoData, GetAuthManageInfoErrors, GetAuthManageInfoResponses, GetCardsData, GetCardsResponses, GetDecksBrowseData, GetDecksBrowseResponses, GetDecksByDeckIdData, GetDecksByDeckIdErrors, GetDecksByDeckIdResponses, GetDecksData, GetDecksResponses, GetMeData, GetMeResponses, GetUsersByUserIdDecksData, GetUsersByUserIdDecksErrors, GetUsersByUserIdDecksResponses, MapIdentityApiAuthConfirmEmailData, MapIdentityApiAuthConfirmEmailResponses, PostAuthCallbackByProviderData, PostAuthCallbackByProviderResponses, PostAuthExchangeData, PostAuthExchangeResponses, PostAuthForgotPasswordData, PostAuthForgotPasswordErrors, PostAuthForgotPasswordResponses, PostAuthLoginData, PostAuthLoginResponses, PostAuthLogoutData, PostAuthLogoutResponses, PostAuthManage2FaData, PostAuthManage2FaErrors, PostAuthManage2FaResponses, PostAuthManageInfoData, PostAuthManageInfoErrors, PostAuthManageInfoResponses, PostAuthRefreshData, PostAuthRefreshResponses, PostAuthRegisterData, PostAuthRegisterErrors, PostAuthRegisterResponses, PostAuthResendConfirmationEmailData, PostAuthResendConfirmationEmailResponses, PostAuthResetPasswordData, PostAuthResetPasswordErrors, PostAuthResetPasswordResponses, PostDecksData, PostDecksErrors, PostDecksFoldersData, PostDecksFoldersErrors, PostDecksFoldersResponses, PostDecksResponses, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsErrors, PutDecksByDeckIdCardsResponses, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsErrors, PutDecksByDeckIdSettingsResponses, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdErrors, PutDecksFoldersByFolderIdResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -123,3 +123,60 @@ export const postAuthManageInfo = <ThrowOnError extends boolean = false>(options
 });
 
 export const getCards = <ThrowOnError extends boolean = false>(options?: Options<GetCardsData, ThrowOnError>) => (options?.client ?? client).get<GetCardsResponses, unknown, ThrowOnError>({ url: '/cards', ...options });
+
+export const getDecksBrowse = <ThrowOnError extends boolean = false>(options?: Options<GetDecksBrowseData, ThrowOnError>) => (options?.client ?? client).get<GetDecksBrowseResponses, unknown, ThrowOnError>({ url: '/decks/browse', ...options });
+
+export const getUsersByUserIdDecks = <ThrowOnError extends boolean = false>(options: Options<GetUsersByUserIdDecksData, ThrowOnError>) => (options.client ?? client).get<GetUsersByUserIdDecksResponses, GetUsersByUserIdDecksErrors, ThrowOnError>({ url: '/users/{userId}/decks', ...options });
+
+export const getDecks = <ThrowOnError extends boolean = false>(options?: Options<GetDecksData, ThrowOnError>) => (options?.client ?? client).get<GetDecksResponses, unknown, ThrowOnError>({ url: '/decks', ...options });
+
+export const postDecks = <ThrowOnError extends boolean = false>(options: Options<PostDecksData, ThrowOnError>) => (options.client ?? client).post<PostDecksResponses, PostDecksErrors, ThrowOnError>({
+    url: '/decks',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const deleteDecksByDeckId = <ThrowOnError extends boolean = false>(options: Options<DeleteDecksByDeckIdData, ThrowOnError>) => (options.client ?? client).delete<DeleteDecksByDeckIdResponses, DeleteDecksByDeckIdErrors, ThrowOnError>({ url: '/decks/{deckId}', ...options });
+
+export const getDecksByDeckId = <ThrowOnError extends boolean = false>(options: Options<GetDecksByDeckIdData, ThrowOnError>) => (options.client ?? client).get<GetDecksByDeckIdResponses, GetDecksByDeckIdErrors, ThrowOnError>({ url: '/decks/{deckId}', ...options });
+
+export const putDecksByDeckIdSettings = <ThrowOnError extends boolean = false>(options: Options<PutDecksByDeckIdSettingsData, ThrowOnError>) => (options.client ?? client).put<PutDecksByDeckIdSettingsResponses, PutDecksByDeckIdSettingsErrors, ThrowOnError>({
+    url: '/decks/{deckId}/settings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const putDecksByDeckIdCards = <ThrowOnError extends boolean = false>(options: Options<PutDecksByDeckIdCardsData, ThrowOnError>) => (options.client ?? client).put<PutDecksByDeckIdCardsResponses, PutDecksByDeckIdCardsErrors, ThrowOnError>({
+    url: '/decks/{deckId}/cards',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const postDecksFolders = <ThrowOnError extends boolean = false>(options: Options<PostDecksFoldersData, ThrowOnError>) => (options.client ?? client).post<PostDecksFoldersResponses, PostDecksFoldersErrors, ThrowOnError>({
+    url: '/decks/folders',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const deleteDecksFoldersByFolderId = <ThrowOnError extends boolean = false>(options: Options<DeleteDecksFoldersByFolderIdData, ThrowOnError>) => (options.client ?? client).delete<DeleteDecksFoldersByFolderIdResponses, DeleteDecksFoldersByFolderIdErrors, ThrowOnError>({ url: '/decks/folders/{folderId}', ...options });
+
+export const putDecksFoldersByFolderId = <ThrowOnError extends boolean = false>(options: Options<PutDecksFoldersByFolderIdData, ThrowOnError>) => (options.client ?? client).put<PutDecksFoldersByFolderIdResponses, PutDecksFoldersByFolderIdErrors, ThrowOnError>({
+    url: '/decks/folders/{folderId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

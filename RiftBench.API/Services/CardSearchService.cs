@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 
 using RiftBench.API.Models.Cards;
+using RiftBench.API.Models.Common;
 using RiftBench.Data;
 using RiftBench.Data.Entities.Cards;
 
@@ -17,7 +18,7 @@ public sealed class CardSearchService
         _db = db;
     }
 
-    public async Task<IReadOnlyList<Card>> SearchAsync(
+    public async Task<PagedResultDto<CardSummaryDto>> SearchAsync(
         CardSearchRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -45,15 +46,44 @@ public sealed class CardSearchService
             x => x.Might,
             NumericFilterParser.Parse(request.Might));
 
-        query = ApplySorting(query, request);
-
         var page = Math.Max(request.Page, 1);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var totalCount = await query.CountAsync(cancellationToken);
 
-        return await query
+        query = ApplySorting(query, request);
+
+        var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(card => new CardSummaryDto(
+                card.Id,
+                card.RiftboundId,
+                card.SetCode,
+                card.SetLabel,
+                card.Name,
+                card.CleanName,
+                card.CollectorNumber,
+                card.Type,
+                card.Supertype,
+                card.Rarity,
+                card.Energy,
+                card.Might,
+                card.Power,
+                card.Domains
+                    .OrderBy(domain => domain.Domain)
+                    .Select(domain => domain.Domain)
+                    .ToList(),
+                card.ImageUrl,
+                card.AlternateArt,
+                card.Overnumbered,
+                card.Signature))
             .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<CardSummaryDto>(
+            items,
+            page,
+            pageSize,
+            totalCount);
     }
 
     private static IQueryable<Card> ApplyTextSearch(

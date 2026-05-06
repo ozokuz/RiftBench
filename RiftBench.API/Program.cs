@@ -40,6 +40,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddScoped<IOneTimeLoginCodeStore, OneTimeLoginCodeStore>();
+builder.Services.AddScoped<CardSearchService>();
+builder.Services.AddScoped<DeckService>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, NoOpEmailSender<ApplicationUser>>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
