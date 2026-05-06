@@ -3,13 +3,20 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { buttonVariants } from "@/components/ui/button"
 import { getDecksOptions } from "@/client/@tanstack/react-query.gen"
 import type { DeckFolderNodeDto, DeckListItemDto } from "@/client"
+import { useAuth } from "@/lib/auth"
 
 export const Route = createFileRoute("/_authed/decks")({
   component: DecksRoute,
 })
 
 function DecksRoute() {
-  const { data, isLoading, isError } = useQuery(getDecksOptions())
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const { data, isLoading, isError } = useQuery({
+    ...getDecksOptions({
+      headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
+    }),
+    enabled: !!user,
+  })
   const decks = [...(data?.decks ?? []), ...flattenFolderDecks(data?.folders ?? [])]
 
   return (
@@ -24,10 +31,10 @@ function DecksRoute() {
         <p className="text-sm text-muted-foreground">Your RiftBench decks.</p>
       </section>
 
-      {isLoading ? <p className="text-sm text-muted-foreground">Loading your decks...</p> : null}
+      {isAuthLoading || isLoading ? <p className="text-sm text-muted-foreground">Loading your decks...</p> : null}
       {isError ? <p className="text-sm text-destructive">Unable to load your decks.</p> : null}
 
-      {decks.length === 0 && !isLoading ? <p className="text-sm text-muted-foreground">No decks found.</p> : null}
+      {decks.length === 0 && !isAuthLoading && !isLoading ? <p className="text-sm text-muted-foreground">No decks found.</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {decks.map((deck) => (

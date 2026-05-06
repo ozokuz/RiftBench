@@ -53,30 +53,28 @@ function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` }
 }
 
-export const refreshTokenFn = createServerFn({ method: "POST" }).handler(
-  async () => {
-    const session = await useAppSession()
-    if (!session.data.refreshToken) {
-      throw new Error("No refresh token available")
-    }
-
-    const tokens = await postAuthRefresh({
-      body: { refreshToken: session.data.refreshToken },
-      baseUrl: process.env.VITE_API_BASE,
-    })
-
-    if (tokens.error || !tokens.data) {
-      await session.clear()
-      throw new Error("Failed to refresh token")
-    }
-
-    await session.update({
-      ...tokens.data,
-    })
-
-    return { accessToken: tokens.data.accessToken }
+async function refreshSessionAccessToken() {
+  const session = await useAppSession()
+  if (!session.data.refreshToken) {
+    return null
   }
-)
+
+  const tokens = await postAuthRefresh({
+    body: { refreshToken: session.data.refreshToken },
+    baseUrl: process.env.VITE_API_BASE,
+  })
+
+  if (tokens.error || !tokens.data) {
+    await session.clear()
+    return null
+  }
+
+  await session.update({
+    ...tokens.data,
+  })
+
+  return tokens.data.accessToken
+}
 
 export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
   const session = await useAppSession()
@@ -98,19 +96,54 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(
   async () => {
     const session = await useAppSession()
     if (!session.data.accessToken) {
-      return null
+      const refreshedAccessToken = await refreshSessionAccessToken()
+      if (!refreshedAccessToken) {
+        return null
+      }
+
+      const refreshedMe = await getMe({
+        headers: { ...authHeader(refreshedAccessToken) },
+        baseUrl: process.env.VITE_API_BASE,
+      })
+
+      if (refreshedMe.error) {
+        return null
+      }
+
+      return {
+        ...refreshedMe.data!,
+        accessToken: refreshedAccessToken,
+      }
     }
 
     const me = await getMe({
       headers: { ...authHeader(session.data.accessToken!) },
       baseUrl: process.env.VITE_API_BASE,
     })
-    if (me.error) {
+    if (!me.error) {
+      return {
+        ...me.data!,
+        accessToken: session.data.accessToken!,
+      }
+    }
+
+    const refreshedAccessToken = await refreshSessionAccessToken()
+    if (!refreshedAccessToken) {
       return null
     }
+
+    const refreshedMe = await getMe({
+      headers: { ...authHeader(refreshedAccessToken) },
+      baseUrl: process.env.VITE_API_BASE,
+    })
+
+    if (refreshedMe.error) {
+      return null
+    }
+
     return {
-      ...me.data!,
-      accessToken: session.data.accessToken!,
+      ...refreshedMe.data!,
+      accessToken: refreshedAccessToken,
     }
   }
 )

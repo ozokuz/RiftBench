@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { buttonVariants } from "@/components/ui/button"
 import { getDecksByDeckIdOptions } from "@/client/@tanstack/react-query.gen"
+import { useAuth } from "@/lib/auth"
 
 export const Route = createFileRoute("/decks/$deckId")({
   component: DeckRoute,
@@ -9,8 +10,15 @@ export const Route = createFileRoute("/decks/$deckId")({
 
 function DeckRoute() {
   const { deckId } = Route.useParams()
+  const { user, isLoading: isAuthLoading } = useAuth()
   const { data: deck, isLoading, isError } = useQuery(
-    getDecksByDeckIdOptions({ path: { deckId } }),
+    {
+      ...getDecksByDeckIdOptions({
+        path: { deckId },
+        headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
+      }),
+      enabled: !isAuthLoading,
+    },
   )
 
   return (
@@ -21,7 +29,7 @@ function DeckRoute() {
         <Link to="/decks" className={buttonVariants({ variant: "ghost" })}>Decks</Link>
       </nav>
 
-      {isLoading ? <p className="text-sm text-muted-foreground">Loading deck...</p> : null}
+      {isAuthLoading || isLoading ? <p className="text-sm text-muted-foreground">Loading deck...</p> : null}
       {isError ? <p className="text-sm text-destructive">Unable to load this deck.</p> : null}
 
       {deck ? (
