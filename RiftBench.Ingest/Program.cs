@@ -42,6 +42,7 @@ builder.Services.AddScoped<IRequestAdapter>(sp =>
 builder.Services.AddScoped<RiftcodexClient>(sp =>
 {
     var adapter = sp.GetRequiredService<IRequestAdapter>();
+    adapter.BaseUrl = "https://api.riftcodex.com";
     return new RiftcodexClient(adapter);
 });
 
@@ -51,12 +52,13 @@ using var host = builder.Build();
 
 var ingestion = host.Services.GetRequiredService<CardSetIngestionService>();
 
-var setCode = args.Length > 9 ? args[0] : null;
+var refetch = args.Any(arg => string.Equals(arg, "--refetch", StringComparison.OrdinalIgnoreCase));
+var setCode = args.FirstOrDefault(arg => !arg.StartsWith("--", StringComparison.Ordinal));
 
 if (string.IsNullOrWhiteSpace(setCode))
 {
-    await ingestion.ImportMissingSetsAsync();
+    await ingestion.ImportMissingSetsAsync(refetch);
     return;
 }
 
-await ingestion.ImportSetAsync(setCode);
+await ingestion.ImportSetAsync(setCode, refetch);
