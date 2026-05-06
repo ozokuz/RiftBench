@@ -1386,10 +1386,25 @@
         }
       },
       "CardDomain": {
-        "type": "integer"
+        "enum": [
+          "Body",
+          "Calm",
+          "Chaos",
+          "Colorless",
+          "Fury",
+          "Mind",
+          "Order"
+        ]
       },
       "CardRarity": {
-        "type": "integer"
+        "enum": [
+          "Common",
+          "Epic",
+          "Promo",
+          "Rare",
+          "Showcase",
+          "Uncommon"
+        ]
       },
       "CardSummaryDto": {
         "required": [
@@ -1491,10 +1506,23 @@
         }
       },
       "CardSupertype": {
-        "type": "integer"
+        "enum": [
+          "None",
+          "Basic",
+          "Champion",
+          "Signature",
+          "Token"
+        ]
       },
       "CardType": {
-        "type": "integer"
+        "enum": [
+          "Battlefield",
+          "Gear",
+          "Legend",
+          "Rune",
+          "Spell",
+          "Unit"
+        ]
       },
       "CreateDeckFolderRequest": {
         "required": [
@@ -1882,10 +1910,17 @@
         }
       },
       "DeckVisibility": {
-        "type": "integer"
+        "enum": [
+          "Private",
+          "Unlisted",
+          "Public"
+        ]
       },
       "DomainFilterMode": {
-        "type": "integer"
+        "enum": [
+          "Or",
+          "And"
+        ]
       },
       "ExchangeExternalLoginRequest": {
         "required": [
