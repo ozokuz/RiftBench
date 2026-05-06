@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start"
 import { redirect } from "@tanstack/react-router"
 import { useSession } from "@tanstack/react-start/server"
-import { getMe, postAuthExchange, postAuthLogout } from "@/client/sdk.gen"
+import {
+  getMe,
+  postAuthExchange,
+  postAuthLogout,
+  postAuthRefresh,
+} from "@/client/sdk.gen"
 
 type SessionData = {
   username?: string
@@ -25,7 +30,7 @@ function useAppSession() {
 }
 
 export const authenticateFn = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string; redirectUrl: string }) => data)
+  .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
     const tokens = await postAuthExchange({
       body: { code: data.code },
@@ -35,7 +40,7 @@ export const authenticateFn = createServerFn({ method: "POST" })
     console.log("Received tokens data from API:", tokens)
 
     if (tokens.error || !tokens.data) {
-      return { error: "Invalid code!" }
+      throw new Error("Invalid code!")
     }
 
     const session = await useAppSession()
@@ -49,6 +54,31 @@ export const authenticateFn = createServerFn({ method: "POST" })
 function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` }
 }
+
+export const refreshTokenFn = createServerFn({ method: "POST" }).handler(
+  async () => {
+    const session = await useAppSession()
+    if (!session.data.refreshToken) {
+      throw new Error("No refresh token available")
+    }
+
+    const tokens = await postAuthRefresh({
+      body: { refreshToken: session.data.refreshToken },
+      baseUrl: process.env.VITE_API_BASE,
+    })
+
+    if (tokens.error || !tokens.data) {
+      await session.clear()
+      throw new Error("Failed to refresh token")
+    }
+
+    await session.update({
+      ...tokens.data,
+    })
+
+    return { accessToken: tokens.data.accessToken }
+  }
+)
 
 export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
   const session = await useAppSession()
@@ -68,7 +98,7 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(
       headers: { ...authHeader(session.data.accessToken!) },
     })
     if (me.error) {
-      return undefined
+      return null
     }
     return {
       ...me.data!,

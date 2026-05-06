@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start"
 import z from "zod"
 import { zodValidator } from "@tanstack/zod-adapter"
 import { client } from "@/client/client.gen"
+import { useAuth } from "@/lib/auth"
+import { useQuery } from "@tanstack/react-query"
 
 const authSchema = z.object({
   auth_code: z.string(),
@@ -22,23 +24,27 @@ function RouteComponent() {
   const { auth_code, redirect_url } = Route.useSearch()
   const navigate = Route.useNavigate()
   const authenticate = useServerFn(authenticateFn)
+  const { refetch } = useAuth()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["auth", auth_code],
+    queryFn: () => authenticate({ data: { code: auth_code } }),
+  })
 
-  authenticate({ data: { code: auth_code, redirectUrl: redirect_url } }).then(
-    (tokens) => {
-      if (tokens.error) {
-        console.error("Authentication failed:", tokens.error)
-        navigate({ to: "/login" })
-        return
-      }
+  if (isLoading) {
+    return <div>Authenticating...</div>
+  }
 
-      client.setConfig({
-        baseUrl: process.env.VITE_API_BASE,
-        headers: { Authorization: `Bearer ${tokens.accessToken}` },
-      })
+  if (isError) {
+    console.error("Authentication failed:", error)
+    navigate({ to: "/login" })
+    return <div>Authentication failed. Redirecting to login...</div>
+  }
 
-      navigate({ to: redirect_url } as any)
-    }
-  )
+  client.setConfig({
+    headers: { Authorization: `Bearer ${data!.accessToken}` },
+  })
+  refetch()
+  navigate({ to: redirect_url } as any)
 
-  return <div>Authenticating...</div>
+  return <div>Redirecting...</div>
 }
