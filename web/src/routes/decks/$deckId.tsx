@@ -10,13 +10,10 @@ export const Route = createFileRoute("/decks/$deckId")({
 
 function DeckRoute() {
   const { deckId } = Route.useParams()
-  const { user, isLoading: isAuthLoading } = useAuth()
+  const { isLoading: isAuthLoading } = useAuth()
   const { data: deck, isLoading, isError } = useQuery(
     {
-      ...getDecksByDeckIdOptions({
-        path: { deckId },
-        headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
-      }),
+      ...getDecksByDeckIdOptions({ path: { deckId } }),
       enabled: !isAuthLoading,
     },
   )

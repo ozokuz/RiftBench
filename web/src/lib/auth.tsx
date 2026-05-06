@@ -25,6 +25,14 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+export function setClientAccessToken(accessToken: string) {
+  client.setConfig({
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const getCurrentUser = useServerFn(getCurrentUserFn)
   const {
@@ -33,7 +41,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetch,
   } = useQuery({
     queryKey: ["me"],
-    queryFn: () => getCurrentUser(),
+    queryFn: async () => {
+      const currentUser = await getCurrentUser()
+      if (currentUser) {
+        setClientAccessToken(currentUser.accessToken)
+      }
+
+      return currentUser
+    },
   })
 
   useEffect(() => {
@@ -41,11 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    client.setConfig({
-      headers: {
-        Authorization: `Bearer ${user.accessToken}`,
-      },
-    })
+    setClientAccessToken(user.accessToken)
   }, [user])
 
   return (
