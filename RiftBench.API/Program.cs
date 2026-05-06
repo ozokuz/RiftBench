@@ -150,7 +150,7 @@ app.MapGet("/auth/login/github", (HttpContext http, string? returnUrl) =>
     {
         RedirectUri = returnUrl is { Length: > 0 } && returnUrl.StartsWith("/")
             ? returnUrl
-            : webBase,
+            : "/",
     };
 
     return Results.Challenge(properties, [OpenIddictClientWebIntegrationConstants.Providers.GitHub]);
@@ -161,7 +161,7 @@ app.MapGet("/auth/login/discord", (HttpContext http, string? returnUrl) =>
     {
         RedirectUri = returnUrl is { Length: > 0 } && returnUrl.StartsWith("/")
             ? returnUrl
-            : webBase
+            : "/"
     };
 
     return Results.Challenge(properties, [OpenIddictClientWebIntegrationConstants.Providers.Discord]);
@@ -233,7 +233,7 @@ app.MapMethods(
 
         var redirectUrl = result.Properties?.RedirectUri ?? "/";
         return Results.Redirect(
-            $"{webBase}/auth?redirect_url={Uri.EscapeDataString(redirectUrl)}?auth_code={Uri.EscapeDataString(loginCode)}");
+            $"{webBase}/auth?redirect_url={Uri.EscapeDataString(redirectUrl)}&auth_code={Uri.EscapeDataString(loginCode)}");
     });
 
 app.MapPost("/auth/exchange", async (
