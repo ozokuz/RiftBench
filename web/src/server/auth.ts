@@ -37,8 +37,6 @@ export const authenticateFn = createServerFn({ method: "POST" })
       baseUrl: process.env.VITE_API_BASE,
     })
 
-    console.log("Received tokens data from API:", tokens)
-
     if (tokens.error || !tokens.data) {
       throw new Error("Invalid code!")
     }
@@ -82,20 +80,30 @@ export const refreshTokenFn = createServerFn({ method: "POST" }).handler(
 
 export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
   const session = await useAppSession()
+  const accessToken = session.data.accessToken
+
+  if (accessToken) {
+    await postAuthLogout({
+      body: {},
+      headers: { ...authHeader(accessToken) },
+      baseUrl: process.env.VITE_API_BASE,
+    })
+  }
+
   await session.clear()
-  await postAuthLogout({
-    body: {},
-    headers: { ...authHeader(session.data.accessToken!) },
-    baseUrl: process.env.VITE_API_BASE,
-  })
   throw redirect({ to: "/" })
 })
 
 export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(
   async () => {
     const session = await useAppSession()
+    if (!session.data.accessToken) {
+      return null
+    }
+
     const me = await getMe({
       headers: { ...authHeader(session.data.accessToken!) },
+      baseUrl: process.env.VITE_API_BASE,
     })
     if (me.error) {
       return null

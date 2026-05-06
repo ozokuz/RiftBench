@@ -1,4 +1,10 @@
-import { createContext, useContext, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react"
 import { useServerFn } from "@tanstack/react-start"
 import { getCurrentUserFn, refreshTokenFn } from "../server/auth"
 import { useQuery } from "@tanstack/react-query"
@@ -21,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const getCurrentUser = useServerFn(getCurrentUserFn)
+  const attemptedRefresh = useRef(false)
   const {
     data: user,
     isLoading,
@@ -31,7 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
   const refreshToken = useServerFn(refreshTokenFn)
 
-  if (!user && !isLoading) {
+  useEffect(() => {
+    if (user || isLoading || attemptedRefresh.current) {
+      return
+    }
+
+    attemptedRefresh.current = true
     refreshToken()
       .then(() => {
         refetch()
@@ -39,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch((err) => {
         console.error("Failed to refresh token:", err)
       })
-  }
+  }, [isLoading, refetch, refreshToken, user])
 
   return (
     <AuthContext.Provider

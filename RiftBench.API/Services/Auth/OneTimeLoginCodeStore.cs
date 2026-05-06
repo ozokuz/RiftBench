@@ -13,6 +13,8 @@ public interface IOneTimeLoginCodeStore
 
 public sealed class OneTimeLoginCodeStore : IOneTimeLoginCodeStore
 {
+    private static readonly SemaphoreSlim RedeemLock = new(1, 1);
+
     private readonly IDistributedCache _cache;
 
     public OneTimeLoginCodeStore(IDistributedCache cache)
@@ -37,18 +39,27 @@ public sealed class OneTimeLoginCodeStore : IOneTimeLoginCodeStore
 
     public async Task<string?> RedeemAsync(string code)
     {
-        var key = Key(code);
+        await RedeemLock.WaitAsync();
 
-        var userId = await _cache.GetStringAsync(key);
-
-        if (userId is null)
+        try
         {
-            return null;
+            var key = Key(code);
+
+            var userId = await _cache.GetStringAsync(key);
+
+            if (userId is null)
+            {
+                return null;
+            }
+
+            await _cache.RemoveAsync(key);
+
+            return userId;
         }
-
-        await _cache.RemoveAsync(key);
-
-        return userId;
+        finally
+        {
+            RedeemLock.Release();
+        }
     }
 
     private static string Key(string code)

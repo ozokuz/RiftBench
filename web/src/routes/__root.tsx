@@ -4,6 +4,11 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 
 import appCss from "../styles.css?url"
 import { AuthProvider } from "@/lib/auth"
+import { client } from "@/client/client.gen"
+
+client.setConfig({
+  baseUrl: import.meta.env.VITE_API_BASE,
+})
 
 export const Route = createRootRoute({
   head: () => ({

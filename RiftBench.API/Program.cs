@@ -266,7 +266,7 @@ app.MapPost("/auth/exchange", async (
     return Results.Empty;
 }).Produces<AccessTokenResponse>();
 
-app.MapPost("/auth/logout", async ([FromBody] object empty, [FromServices] SignInManager<IdentityUser> signInManager) =>
+app.MapPost("/auth/logout", async ([FromBody] object empty, [FromServices] SignInManager<ApplicationUser> signInManager) =>
     {
         if (empty == null)
         {
@@ -284,6 +284,17 @@ app.MapGet("/me",
                 Email: user.FindFirstValue(ClaimTypes.Email), UserId: user.FindFirstValue(ClaimTypes.NameIdentifier))))
     .Produces<UserInfoDto>()
     .RequireAuthorization();
-app.MapGroup("/auth").MapIdentityApi<ApplicationUser>();
+var identityAuthGroup = app.MapGroup("/auth");
+identityAuthGroup.AddEndpointFilter(async (context, next) =>
+{
+    if (!HttpMethods.IsPost(context.HttpContext.Request.Method) ||
+        !context.HttpContext.Request.Path.Equals("/auth/refresh", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.NotFound();
+    }
+
+    return await next(context);
+});
+identityAuthGroup.MapIdentityApi<ApplicationUser>();
 app.MapControllers();
 app.Run();
