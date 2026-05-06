@@ -11,9 +11,28 @@ export type AccessTokenResponse = {
     refreshToken: string;
 };
 
-export type CardDomain = number;
+export const CardDomain = {
+    BODY: 'Body',
+    CALM: 'Calm',
+    CHAOS: 'Chaos',
+    COLORLESS: 'Colorless',
+    FURY: 'Fury',
+    MIND: 'Mind',
+    ORDER: 'Order'
+} as const;
 
-export type CardRarity = number;
+export type CardDomain = typeof CardDomain[keyof typeof CardDomain];
+
+export const CardRarity = {
+    COMMON: 'Common',
+    EPIC: 'Epic',
+    PROMO: 'Promo',
+    RARE: 'Rare',
+    SHOWCASE: 'Showcase',
+    UNCOMMON: 'Uncommon'
+} as const;
+
+export type CardRarity = typeof CardRarity[keyof typeof CardRarity];
 
 export type CardSummaryDto = {
     id: string;
@@ -36,9 +55,26 @@ export type CardSummaryDto = {
     signature: boolean;
 };
 
-export type CardSupertype = number;
+export const CardSupertype = {
+    NONE: 'None',
+    BASIC: 'Basic',
+    CHAMPION: 'Champion',
+    SIGNATURE: 'Signature',
+    TOKEN: 'Token'
+} as const;
 
-export type CardType = number;
+export type CardSupertype = typeof CardSupertype[keyof typeof CardSupertype];
+
+export const CardType = {
+    BATTLEFIELD: 'Battlefield',
+    GEAR: 'Gear',
+    LEGEND: 'Legend',
+    RUNE: 'Rune',
+    SPELL: 'Spell',
+    UNIT: 'Unit'
+} as const;
+
+export type CardType = typeof CardType[keyof typeof CardType];
 
 export type CreateDeckFolderRequest = {
     name: string;
@@ -125,9 +161,17 @@ export type DeckTreeDto = {
     decks: Array<DeckListItemDto>;
 };
 
-export type DeckVisibility = number;
+export const DeckVisibility = {
+    PRIVATE: 'Private',
+    UNLISTED: 'Unlisted',
+    PUBLIC: 'Public'
+} as const;
 
-export type DomainFilterMode = number;
+export type DeckVisibility = typeof DeckVisibility[keyof typeof DeckVisibility];
+
+export const DomainFilterMode = { OR: 'Or', AND: 'And' } as const;
+
+export type DomainFilterMode = typeof DomainFilterMode[keyof typeof DomainFilterMode];
 
 export type ExchangeExternalLoginRequest = {
     code: string;

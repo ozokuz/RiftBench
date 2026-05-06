@@ -1,0 +1,50 @@
+import { Link, createFileRoute } from "@tanstack/react-router"
+import { buttonVariants } from "@/components/ui/button"
+import z from "zod"
+import { zodValidator } from "@tanstack/zod-adapter"
+
+const loginSchema = z.object({
+  redirect: z.string().optional(),
+})
+
+export const Route = createFileRoute("/_unauthed/login")({
+  component: RouteComponent,
+  validateSearch: zodValidator(loginSchema),
+})
+
+const api = import.meta.env.VITE_API_BASE
+
+function RouteComponent() {
+  const { redirect } = Route.useSearch()
+  return (
+    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-6 px-6 py-12">
+      <div className="space-y-2">
+        <Link
+          to="/"
+          className={buttonVariants({ variant: "ghost", className: "-ml-4" })}
+        >
+          Home
+        </Link>
+        <h1 className="text-3xl font-semibold tracking-normal">Login</h1>
+        <p className="text-sm text-muted-foreground">
+          Choose a provider to continue to RiftBench.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <a
+          href={`${api}/auth/login/github${redirect ? `?returnUrl=${encodeURIComponent(redirect)}` : ""}`}
+          className={buttonVariants()}
+        >
+          Login with GitHub
+        </a>
+        <a
+          href={`${api}/auth/login/discord${redirect ? `?returnUrl=${encodeURIComponent(redirect)}` : ""}`}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Login with Discord
+        </a>
+      </div>
+    </main>
+  )
+}

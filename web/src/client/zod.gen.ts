@@ -9,13 +9,41 @@ export const zAccessTokenResponse = z.object({
     refreshToken: z.string()
 });
 
-export const zCardDomain = z.int();
+export const zCardDomain = z.enum([
+    'Body',
+    'Calm',
+    'Chaos',
+    'Colorless',
+    'Fury',
+    'Mind',
+    'Order'
+]);
 
-export const zCardRarity = z.int();
+export const zCardRarity = z.enum([
+    'Common',
+    'Epic',
+    'Promo',
+    'Rare',
+    'Showcase',
+    'Uncommon'
+]);
 
-export const zCardSupertype = z.int();
+export const zCardSupertype = z.enum([
+    'None',
+    'Basic',
+    'Champion',
+    'Signature',
+    'Token'
+]);
 
-export const zCardType = z.int();
+export const zCardType = z.enum([
+    'Battlefield',
+    'Gear',
+    'Legend',
+    'Rune',
+    'Spell',
+    'Unit'
+]);
 
 export const zCardSummaryDto = z.object({
     id: z.uuid(),
@@ -70,7 +98,11 @@ export const zDeckFolderDto = z.object({
     updatedAt: z.iso.datetime()
 });
 
-export const zDeckVisibility = z.int();
+export const zDeckVisibility = z.enum([
+    'Private',
+    'Unlisted',
+    'Public'
+]);
 
 export const zCreateDeckRequest = z.object({
     name: z.string(),
@@ -125,7 +157,7 @@ export const zDeckTreeDto = z.object({
     decks: z.array(zDeckListItemDto)
 });
 
-export const zDomainFilterMode = z.int();
+export const zDomainFilterMode = z.enum(['Or', 'And']);
 
 export const zExchangeExternalLoginRequest = z.object({
     code: z.string()

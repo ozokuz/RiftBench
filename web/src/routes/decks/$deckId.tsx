@@ -1,0 +1,53 @@
+import { useQuery } from "@tanstack/react-query"
+import { Link, createFileRoute } from "@tanstack/react-router"
+import { buttonVariants } from "@/components/ui/button"
+import { getDecksByDeckIdOptions } from "@/client/@tanstack/react-query.gen"
+
+export const Route = createFileRoute("/decks/$deckId")({
+  component: DeckRoute,
+})
+
+function DeckRoute() {
+  const { deckId } = Route.useParams()
+  const { data: deck, isLoading, isError } = useQuery(
+    getDecksByDeckIdOptions({ path: { deckId } }),
+  )
+
+  return (
+    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 px-6 py-12">
+      <nav className="flex flex-wrap items-center gap-3 text-sm">
+        <Link to="/" className={buttonVariants({ variant: "ghost" })}>Home</Link>
+        <Link to="/browse" className={buttonVariants({ variant: "ghost" })}>Browse</Link>
+        <Link to="/decks" className={buttonVariants({ variant: "ghost" })}>Decks</Link>
+      </nav>
+
+      {isLoading ? <p className="text-sm text-muted-foreground">Loading deck...</p> : null}
+      {isError ? <p className="text-sm text-destructive">Unable to load this deck.</p> : null}
+
+      {deck ? (
+        <>
+          <section className="space-y-3">
+            <p className="text-sm font-medium text-muted-foreground">{deck.username ?? "RiftBench deck"}</p>
+            <h1 className="text-3xl font-semibold tracking-normal">{deck.name}</h1>
+            {deck.description ? <p className="max-w-2xl text-sm text-muted-foreground">{deck.description}</p> : null}
+            <p className="text-sm text-muted-foreground">{deck.cards.reduce((total, card) => total + card.quantity, 0)} cards</p>
+          </section>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {deck.cards.map((deckCard) => (
+              <article key={`${deckCard.cardId}-${deckCard.categoryId ?? "main"}`} className="rounded-lg border bg-card p-4 text-card-foreground">
+                <div className="flex items-start justify-between gap-4">
+                  <h2 className="font-medium">{deckCard.card.name}</h2>
+                  <span className="shrink-0 text-sm font-medium">x{deckCard.quantity}</span>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {deckCard.card.setCode} #{deckCard.card.collectorNumber}
+                </p>
+              </article>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </main>
+  )
+}
