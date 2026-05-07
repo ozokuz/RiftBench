@@ -14,7 +14,9 @@ import { createFileRoute } from "@tanstack/react-router"
 import {
   ArrowDownWideNarrow,
   Check,
+  Minus,
   MoreHorizontal,
+  Plus,
   Search,
   Settings,
   SquareStack,
@@ -399,6 +401,19 @@ function DeckEditor({
     })
   }
 
+  function changeDeckCardQuantity(cardId: string, delta: number) {
+    updateDeckCards((current) => ({
+      categories: current.categories,
+      cards: current.cards
+        .map((deckCard) =>
+          deckCard.cardId === cardId
+            ? { ...deckCard, quantity: deckCard.quantity + delta }
+            : deckCard
+        )
+        .filter((deckCard) => deckCard.quantity > 0),
+    }))
+  }
+
   function handleQuickAdd() {
     if (quickAddResults.length === 0) {
       return
@@ -562,6 +577,7 @@ function DeckEditor({
               placeholderCard={
                 hoveredCategoryId === group.id ? draggedCard : undefined
               }
+              onChangeQuantity={changeDeckCardQuantity}
             />
           ))}
         </div>
@@ -1124,11 +1140,13 @@ function CardGroup({
   canDrag,
   draggedCardId,
   placeholderCard,
+  onChangeQuantity,
 }: {
   group: CardGroupModel
   canDrag: boolean
   draggedCardId: string | null
   placeholderCard?: EditableDeckCard
+  onChangeQuantity: (cardId: string, delta: number) => void
 }) {
   const droppableId = `category:${group.id}`
   const { setNodeRef, isOver } = useDroppable({
@@ -1181,6 +1199,7 @@ function CardGroup({
               isBattlefield: isBattlefieldGroup,
             })}
             onHover={() => setHoveredCardId(deckCard.cardId)}
+            onChangeQuantity={onChangeQuantity}
           />
         ))}
         {placeholderCard ? (
@@ -1201,6 +1220,7 @@ function DeckCardTile({
   isHovered,
   stackOffset,
   onHover,
+  onChangeQuantity,
 }: {
   deckCard: EditableDeckCard
   canDrag: boolean
@@ -1208,6 +1228,7 @@ function DeckCardTile({
   isHovered: boolean
   stackOffset: number
   onHover: () => void
+  onChangeQuantity: (cardId: string, delta: number) => void
 }) {
   const draggable = useDraggable({
     id: `card:${deckCard.cardId}`,
@@ -1233,6 +1254,31 @@ function DeckCardTile({
       )}
     >
       <DeckCardVisual deckCard={deckCard} />
+      {isHovered ? (
+        <div
+          className="absolute top-1.5 right-1.5 z-20 flex gap-1"
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/30 transition hover:bg-[#202020]"
+            aria-label={`Decrease ${deckCard.card.name} count`}
+            onClick={() => onChangeQuantity(deckCard.cardId, -1)}
+          >
+            <Minus className="size-4" />
+          </button>
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/30 transition hover:bg-[#202020]"
+            aria-label={`Increase ${deckCard.card.name} count`}
+            onClick={() => onChangeQuantity(deckCard.cardId, 1)}
+          >
+            <Plus className="size-4" />
+          </button>
+        </div>
+      ) : null}
     </article>
   )
 }
