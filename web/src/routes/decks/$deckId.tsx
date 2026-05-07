@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
   useDroppable,
@@ -23,7 +24,7 @@ import {
   Settings,
   SquareStack,
 } from "lucide-react"
-import type { DragEndEvent } from "@dnd-kit/core"
+import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core"
 import type { ComponentProps, FormEvent, KeyboardEvent } from "react"
 import type {
   CardDomain,
@@ -236,6 +237,10 @@ function DeckEditor({
   const [debouncedQuickAdd, setDebouncedQuickAdd] = useState("")
   const [selectedQuickAddIndex, setSelectedQuickAddIndex] = useState(0)
   const [isCardSearchOpen, setIsCardSearchOpen] = useState(false)
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null)
+  const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(
+    null
+  )
   const [dirtyVersion, setDirtyVersion] = useState(0)
   const dirtyRef = useRef(false)
   const latestStateRef = useRef({ categories, cards })
@@ -331,6 +336,9 @@ function DeckEditor({
     () => groupCards(categories, cards, groupMode, sortMode, filter),
     [cards, categories, filter, groupMode, sortMode]
   )
+  const draggedCard = draggedCardId
+    ? cards.find((card) => card.cardId === draggedCardId)
+    : undefined
 
   function updateDeckCards(
     updater: (state: {
@@ -437,6 +445,30 @@ function DeckEditor({
     }
   }
 
+  function handleDragStart(event: DragStartEvent) {
+    const activeId = String(event.active.id)
+    if (!activeId.startsWith("card:")) {
+      return
+    }
+
+    const nextDraggedCardId = activeId.replace("card:", "")
+    setDraggedCardId(nextDraggedCardId)
+    setHoveredCategoryId(
+      cards.find((card) => card.cardId === nextDraggedCardId)?.categoryId ??
+        null
+    )
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const overId = event.over ? String(event.over.id) : null
+    setHoveredCategoryId(getCategoryIdFromDropTarget(overId, cards))
+  }
+
+  function clearDragState() {
+    setDraggedCardId(null)
+    setHoveredCategoryId(null)
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const activeId = String(event.active.id)
     const overId = event.over ? String(event.over.id) : null
@@ -446,16 +478,17 @@ function DeckEditor({
       !isOwner ||
       groupMode !== "category"
     ) {
+      clearDragState()
       return
     }
 
-    const draggedCardId = activeId.replace("card:", "")
+    const droppedCardId = activeId.replace("card:", "")
 
     updateDeckCards((current) => {
-      const draggedCard = current.cards.find(
-        (card) => card.cardId === draggedCardId
+      const droppedCard = current.cards.find(
+        (card) => card.cardId === droppedCardId
       )
-      if (!draggedCard) {
+      if (!droppedCard) {
         return current
       }
 
@@ -474,14 +507,14 @@ function DeckEditor({
       }
 
       const remainingCards = current.cards.filter(
-        (card) => card.cardId !== draggedCardId
+        (card) => card.cardId !== droppedCardId
       )
       const targetIndex = targetCard
         ? remainingCards.findIndex((card) => card.cardId === targetCard.cardId)
         : remainingCards.filter((card) => card.categoryId === targetCategoryId)
             .length
 
-      const nextCard = { ...draggedCard, categoryId: targetCategoryId }
+      const nextCard = { ...droppedCard, categoryId: targetCategoryId }
       const insertIndex = targetCard
         ? Math.max(targetIndex, 0)
         : remainingCards.length
@@ -496,6 +529,7 @@ function DeckEditor({
         cards: nextCards,
       }
     })
+    clearDragState()
   }
 
   return (
@@ -530,7 +564,10 @@ function DeckEditor({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={clearDragState}
       >
         <div className="flex w-full flex-wrap items-start gap-6 bg-[#222222] p-5">
           {groupedCards.map((group) => (
@@ -538,9 +575,16 @@ function DeckEditor({
               key={group.id}
               group={group}
               canDrag={isOwner && groupMode === "category"}
+              draggedCardId={draggedCardId}
+              placeholderCard={
+                hoveredCategoryId === group.id ? draggedCard : undefined
+              }
             />
           ))}
         </div>
+        <DragOverlay dropAnimation={null}>
+          {draggedCard ? <DeckCardDragPreview deckCard={draggedCard} /> : null}
+        </DragOverlay>
       </DndContext>
       <CardSearchDialog
         open={isCardSearchOpen}
@@ -1095,9 +1139,13 @@ type CardGroupModel = {
 function CardGroup({
   group,
   canDrag,
+  draggedCardId,
+  placeholderCard,
 }: {
   group: CardGroupModel
   canDrag: boolean
+  draggedCardId: string | null
+  placeholderCard?: EditableDeckCard
 }) {
   const droppableId = `category:${group.id}`
   const { setNodeRef, isOver } = useDroppable({
@@ -1136,8 +1184,12 @@ function CardGroup({
               key={deckCard.cardId}
               deckCard={deckCard}
               canDrag={canDrag}
+              isDragSource={deckCard.cardId === draggedCardId}
             />
           ))}
+          {placeholderCard ? (
+            <DeckCardPlaceholder deckCard={placeholderCard} />
+          ) : null}
         </div>
       </SortableContext>
     </section>
@@ -1147,19 +1199,22 @@ function CardGroup({
 function DeckCardTile({
   deckCard,
   canDrag,
+  isDragSource,
 }: {
   deckCard: EditableDeckCard
   canDrag: boolean
+  isDragSource: boolean
 }) {
   const sortable = useSortable({
     id: `card:${deckCard.cardId}`,
     disabled: !canDrag,
   })
   const style = {
-    transform: CSS.Transform.toString(sortable.transform),
+    transform: isDragSource
+      ? undefined
+      : CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
   }
-  const isBattlefield = deckCard.card.type === "Battlefield"
 
   return (
     <article
@@ -1170,9 +1225,40 @@ function DeckCardTile({
       className={cn(
         "relative overflow-hidden rounded-md bg-black shadow-lg ring-1 shadow-black/40 ring-white/10",
         canDrag && "touch-none",
-        sortable.isDragging && "z-30 opacity-70 ring-2 ring-primary"
+        isDragSource && "opacity-20"
       )}
     >
+      <DeckCardVisual deckCard={deckCard} />
+    </article>
+  )
+}
+
+function DeckCardDragPreview({ deckCard }: { deckCard: EditableDeckCard }) {
+  return (
+    <article
+      className={cn(
+        "relative overflow-hidden rounded-md bg-black shadow-2xl ring-2 ring-primary/70",
+        deckCard.card.type === "Battlefield" ? "w-[300px]" : "w-[180px]"
+      )}
+    >
+      <DeckCardVisual deckCard={deckCard} />
+    </article>
+  )
+}
+
+function DeckCardPlaceholder({ deckCard }: { deckCard: EditableDeckCard }) {
+  return (
+    <article className="pointer-events-none relative overflow-hidden rounded-md bg-black opacity-35 ring-2 ring-primary/60">
+      <DeckCardVisual deckCard={deckCard} />
+    </article>
+  )
+}
+
+function DeckCardVisual({ deckCard }: { deckCard: EditableDeckCard }) {
+  const isBattlefield = deckCard.card.type === "Battlefield"
+
+  return (
+    <>
       <span className="absolute top-1.5 left-1.5 z-10 rounded bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
         {deckCard.quantity}
       </span>
@@ -1196,8 +1282,28 @@ function DeckCardTile({
           {deckCard.card.name}
         </div>
       )}
-    </article>
+    </>
   )
+}
+
+function getCategoryIdFromDropTarget(
+  overId: string | null,
+  cards: Array<EditableDeckCard>
+) {
+  if (!overId) {
+    return null
+  }
+
+  if (overId.startsWith("category:")) {
+    return overId.replace("category:", "")
+  }
+
+  if (overId.startsWith("card:")) {
+    const cardId = overId.replace("card:", "")
+    return cards.find((card) => card.cardId === cardId)?.categoryId ?? null
+  }
+
+  return null
 }
 
 function groupCards(
