@@ -87,7 +87,9 @@ function Shell({ children }: { children: React.ReactNode }) {
           <UserArea />
         </div>
       </nav>
-      <main className="mx-auto mt-4 flex grow flex-col">{children}</main>
+      <main className="mx-auto mt-4 flex w-full max-w-5xl grow flex-col p-4">
+        {children}
+      </main>
       <footer className="bg-[#333333] text-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between p-4">
           <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground">
