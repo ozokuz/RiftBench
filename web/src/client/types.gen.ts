@@ -11,6 +11,31 @@ export type AccessTokenResponse = {
     refreshToken: string;
 };
 
+export type CardDetailDto = {
+    id: string;
+    riftboundId: string;
+    setCode: string;
+    setLabel: string;
+    name: string;
+    cleanName: string;
+    collectorNumber: number;
+    type: CardType;
+    supertype: CardSupertype;
+    rarity: CardRarity;
+    energy: null | number;
+    might: null | number;
+    power: null | number;
+    domains: Array<CardDomain>;
+    imageUrl: null | string;
+    richText: null | string;
+    plainText: null | string;
+    flavourText: null | string;
+    artist: null | string;
+    alternateArt: boolean;
+    overnumbered: boolean;
+    signature: boolean;
+};
+
 export const CardDomain = {
     BODY: 'Body',
     CALM: 'Calm',
@@ -674,6 +699,33 @@ export type GetCardsResponses = {
 };
 
 export type GetCardsResponse = GetCardsResponses[keyof GetCardsResponses];
+
+export type GetCardsByCardIdData = {
+    body?: never;
+    path: {
+        cardId: string;
+    };
+    query?: never;
+    url: '/cards/{cardId}';
+};
+
+export type GetCardsByCardIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetCardsByCardIdError = GetCardsByCardIdErrors[keyof GetCardsByCardIdErrors];
+
+export type GetCardsByCardIdResponses = {
+    /**
+     * OK
+     */
+    200: CardDetailDto;
+};
+
+export type GetCardsByCardIdResponse = GetCardsByCardIdResponses[keyof GetCardsByCardIdResponses];
 
 export type GetDecksBrowseData = {
     body?: never;

@@ -610,6 +610,66 @@
         }
       }
     },
+    "/cards/{cardId}": {
+      "get": {
+        "tags": [
+          "Cards"
+        ],
+        "parameters": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/decks/browse": {
       "get": {
         "tags": [
@@ -1382,6 +1442,133 @@
           },
           "refreshToken": {
             "type": "string"
+          }
+        }
+      },
+      "CardDetailDto": {
+        "required": [
+          "id",
+          "riftboundId",
+          "setCode",
+          "setLabel",
+          "name",
+          "cleanName",
+          "collectorNumber",
+          "type",
+          "supertype",
+          "rarity",
+          "energy",
+          "might",
+          "power",
+          "domains",
+          "imageUrl",
+          "richText",
+          "plainText",
+          "flavourText",
+          "artist",
+          "alternateArt",
+          "overnumbered",
+          "signature"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "riftboundId": {
+            "type": "string"
+          },
+          "setCode": {
+            "type": "string"
+          },
+          "setLabel": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "cleanName": {
+            "type": "string"
+          },
+          "collectorNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "$ref": "#/components/schemas/CardType"
+          },
+          "supertype": {
+            "$ref": "#/components/schemas/CardSupertype"
+          },
+          "rarity": {
+            "$ref": "#/components/schemas/CardRarity"
+          },
+          "energy": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "might": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "power": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardDomain"
+            }
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "richText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plainText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "flavourText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "artist": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "alternateArt": {
+            "type": "boolean"
+          },
+          "overnumbered": {
+            "type": "boolean"
+          },
+          "signature": {
+            "type": "boolean"
           }
         }
       },

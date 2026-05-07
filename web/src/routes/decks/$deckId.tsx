@@ -41,6 +41,7 @@ import {
   CardType as CardTypeValues,
   DomainFilterMode as DomainFilterModeValues,
 } from "@/client/types.gen"
+import { client as apiClient } from "@/client/client.gen"
 import {
   getCardsOptions,
   getDecksByDeckIdOptions,
@@ -96,6 +97,13 @@ type EditableCategory = {
 
 type EditableDeckCard = DeckCardDto & {
   categoryId: string
+}
+
+type CardDetailDto = CardSummaryDto & {
+  richText: null | string
+  plainText: null | string
+  flavourText: null | string
+  artist: null | string
 }
 
 type GroupMode = "category" | "type"
@@ -234,6 +242,9 @@ function DeckEditor({
   const [debouncedQuickAdd, setDebouncedQuickAdd] = useState("")
   const [selectedQuickAddIndex, setSelectedQuickAddIndex] = useState(0)
   const [isCardSearchOpen, setIsCardSearchOpen] = useState(false)
+  const [selectedDetailCardId, setSelectedDetailCardId] = useState<
+    string | null
+  >(null)
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null)
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(
     null
@@ -578,6 +589,7 @@ function DeckEditor({
                 hoveredCategoryId === group.id ? draggedCard : undefined
               }
               onChangeQuantity={changeDeckCardQuantity}
+              onOpenCardDetails={setSelectedDetailCardId}
             />
           ))}
         </div>
@@ -589,6 +601,14 @@ function DeckEditor({
         open={isCardSearchOpen}
         onOpenChange={setIsCardSearchOpen}
         onAddCard={addCard}
+      />
+      <CardDetailsDialog
+        cardId={selectedDetailCardId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDetailCardId(null)
+          }
+        }}
       />
     </div>
   )
@@ -1068,6 +1088,113 @@ function CardSearchDialog({
   )
 }
 
+function CardDetailsDialog({
+  cardId,
+  onOpenChange,
+}: {
+  cardId: string | null
+  onOpenChange: (open: boolean) => void
+}) {
+  const detailQuery = useQuery({
+    queryKey: ["card-detail", cardId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<
+        { 200: CardDetailDto },
+        unknown,
+        true
+      >({
+        url: "/cards/{cardId}",
+        path: { cardId: cardId! },
+        throwOnError: true,
+      })
+
+      return data
+    },
+    enabled: cardId !== null,
+  })
+  const card = detailQuery.data
+
+  return (
+    <Dialog open={cardId !== null} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-[1680px] overflow-y-auto border-[#2f2f2f] bg-[#222222] p-9 text-white">
+        <DialogTitle className="text-5xl font-normal tracking-normal">
+          {card?.name ?? "Card Details"}
+        </DialogTitle>
+
+        {detailQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading card...</p>
+        ) : null}
+        {detailQuery.isError ? (
+          <p className="text-sm text-destructive">Unable to load card.</p>
+        ) : null}
+
+        {card ? (
+          <div className="grid gap-14 lg:grid-cols-[480px_1fr]">
+            <div className="max-w-[480px] overflow-hidden rounded-2xl bg-black">
+              {card.imageUrl ? (
+                <img
+                  src={card.imageUrl}
+                  alt={card.name}
+                  className="w-full object-cover"
+                />
+              ) : (
+                <div className="flex aspect-[0.714/1] items-center justify-center p-6 text-center text-xl">
+                  {card.name}
+                </div>
+              )}
+            </div>
+
+            <section className="min-h-[660px] rounded-lg bg-[#333333] p-7">
+              <div className="flex items-start justify-between gap-6">
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-normal tracking-normal">
+                    {card.name}
+                  </h2>
+                  <p className="text-2xl text-muted-foreground">{card.type}</p>
+                </div>
+                <DomainIconRow domains={card.domains} />
+              </div>
+
+              <div className="mt-5 space-y-3 text-2xl">
+                <p>Card Text:</p>
+                <p className="max-w-4xl leading-snug whitespace-pre-line">
+                  {card.plainText ?? card.richText ?? "No card text."}
+                </p>
+              </div>
+
+              {card.flavourText ? (
+                <p className="mt-6 max-w-4xl text-lg whitespace-pre-line text-muted-foreground italic">
+                  {card.flavourText}
+                </p>
+              ) : null}
+            </section>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DomainIconRow({ domains }: { domains: Array<CardDomain> }) {
+  if (domains.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      {domains.map((domain) => (
+        <img
+          key={domain}
+          src={`/icons/domain/${domain}.png`}
+          alt={domain}
+          title={domain}
+          className="size-10 object-contain"
+        />
+      ))}
+    </div>
+  )
+}
+
 function IconToggleGroup<TValue extends string>({
   label,
   values,
@@ -1141,12 +1268,14 @@ function CardGroup({
   draggedCardId,
   placeholderCard,
   onChangeQuantity,
+  onOpenCardDetails,
 }: {
   group: CardGroupModel
   canDrag: boolean
   draggedCardId: string | null
   placeholderCard?: EditableDeckCard
   onChangeQuantity: (cardId: string, delta: number) => void
+  onOpenCardDetails: (cardId: string) => void
 }) {
   const droppableId = `category:${group.id}`
   const { setNodeRef, isOver } = useDroppable({
@@ -1200,6 +1329,7 @@ function CardGroup({
             })}
             onHover={() => setHoveredCardId(deckCard.cardId)}
             onChangeQuantity={onChangeQuantity}
+            onOpenCardDetails={onOpenCardDetails}
           />
         ))}
         {placeholderCard ? (
@@ -1221,6 +1351,7 @@ function DeckCardTile({
   stackOffset,
   onHover,
   onChangeQuantity,
+  onOpenCardDetails,
 }: {
   deckCard: EditableDeckCard
   canDrag: boolean
@@ -1229,6 +1360,7 @@ function DeckCardTile({
   stackOffset: number
   onHover: () => void
   onChangeQuantity: (cardId: string, delta: number) => void
+  onOpenCardDetails: (cardId: string) => void
 }) {
   const draggable = useDraggable({
     id: `card:${deckCard.cardId}`,
@@ -1246,6 +1378,11 @@ function DeckCardTile({
       {...draggable.attributes}
       {...draggable.listeners}
       onMouseEnter={onHover}
+      onClick={() => {
+        if (!draggable.isDragging) {
+          onOpenCardDetails(deckCard.cardId)
+        }
+      }}
       className={cn(
         "relative overflow-hidden rounded-md bg-black shadow-lg ring-1 shadow-black/40 ring-white/10 transition-[margin,opacity,box-shadow] duration-150",
         canDrag && "touch-none",

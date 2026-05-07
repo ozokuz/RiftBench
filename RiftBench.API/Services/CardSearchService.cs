@@ -86,6 +86,47 @@ public sealed class CardSearchService
             totalCount);
     }
 
+    public async Task<ServiceResult<CardDetailDto>> GetCardAsync(
+        Guid cardId,
+        CancellationToken cancellationToken = default)
+    {
+        var card = await _db.Cards
+            .AsNoTracking()
+            .Include(x => x.Domains)
+            .Where(x => x.Id == cardId)
+            .Select(card => new CardDetailDto(
+                card.Id,
+                card.RiftboundId,
+                card.SetCode,
+                card.SetLabel,
+                card.Name,
+                card.CleanName,
+                card.CollectorNumber,
+                card.Type,
+                card.Supertype,
+                card.Rarity,
+                card.Energy,
+                card.Might,
+                card.Power,
+                card.Domains
+                    .OrderBy(domain => domain.Domain)
+                    .Select(domain => domain.Domain)
+                    .ToList(),
+                card.ImageUrl,
+                card.RichText,
+                card.PlainText,
+                card.FlavourText,
+                card.Artist,
+                card.AlternateArt,
+                card.Overnumbered,
+                card.Signature))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return card is null
+            ? ServiceResult<CardDetailDto>.NotFound()
+            : ServiceResult<CardDetailDto>.Ok(card);
+    }
+
     private static IQueryable<Card> ApplyTextSearch(
         IQueryable<Card> query,
         string? search)

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDecksByDeckId, deleteDecksFoldersByFolderId, getAuthCallbackByProvider, getAuthLoginDiscord, getAuthLoginGithub, getAuthManageInfo, getCards, getDecks, getDecksBrowse, getDecksByDeckId, getMe, getUsersByUserIdDecks, mapIdentityApiAuthConfirmEmail, type Options, postAuthCallbackByProvider, postAuthExchange, postAuthForgotPassword, postAuthLogin, postAuthLogout, postAuthManage2Fa, postAuthManageInfo, postAuthRefresh, postAuthRegister, postAuthResendConfirmationEmail, postAuthResetPassword, postDecks, postDecksFolders, putDecksByDeckIdCards, putDecksByDeckIdSettings, putDecksFoldersByFolderId } from '../sdk.gen';
-import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdError, DeleteDecksByDeckIdResponse, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdError, DeleteDecksFoldersByFolderIdResponse, GetAuthCallbackByProviderData, GetAuthLoginDiscordData, GetAuthLoginGithubData, GetAuthManageInfoData, GetAuthManageInfoError, GetAuthManageInfoResponse, GetCardsData, GetCardsResponse, GetDecksBrowseData, GetDecksBrowseResponse, GetDecksByDeckIdData, GetDecksByDeckIdError, GetDecksByDeckIdResponse, GetDecksData, GetDecksResponse, GetMeData, GetMeResponse, GetUsersByUserIdDecksData, GetUsersByUserIdDecksError, GetUsersByUserIdDecksResponse, MapIdentityApiAuthConfirmEmailData, PostAuthCallbackByProviderData, PostAuthExchangeData, PostAuthExchangeResponse, PostAuthForgotPasswordData, PostAuthForgotPasswordError, PostAuthLoginData, PostAuthLoginResponse, PostAuthLogoutData, PostAuthManage2FaData, PostAuthManage2FaError, PostAuthManage2FaResponse, PostAuthManageInfoData, PostAuthManageInfoError, PostAuthManageInfoResponse, PostAuthRefreshData, PostAuthRefreshResponse, PostAuthRegisterData, PostAuthRegisterError, PostAuthResendConfirmationEmailData, PostAuthResetPasswordData, PostAuthResetPasswordError, PostDecksData, PostDecksError, PostDecksFoldersData, PostDecksFoldersError, PostDecksFoldersResponse, PostDecksResponse, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsError, PutDecksByDeckIdCardsResponse, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsError, PutDecksByDeckIdSettingsResponse, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdError, PutDecksFoldersByFolderIdResponse } from '../types.gen';
+import { deleteDecksByDeckId, deleteDecksFoldersByFolderId, getAuthCallbackByProvider, getAuthLoginDiscord, getAuthLoginGithub, getAuthManageInfo, getCards, getCardsByCardId, getDecks, getDecksBrowse, getDecksByDeckId, getMe, getUsersByUserIdDecks, mapIdentityApiAuthConfirmEmail, type Options, postAuthCallbackByProvider, postAuthExchange, postAuthForgotPassword, postAuthLogin, postAuthLogout, postAuthManage2Fa, postAuthManageInfo, postAuthRefresh, postAuthRegister, postAuthResendConfirmationEmail, postAuthResetPassword, postDecks, postDecksFolders, putDecksByDeckIdCards, putDecksByDeckIdSettings, putDecksFoldersByFolderId } from '../sdk.gen';
+import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdError, DeleteDecksByDeckIdResponse, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdError, DeleteDecksFoldersByFolderIdResponse, GetAuthCallbackByProviderData, GetAuthLoginDiscordData, GetAuthLoginGithubData, GetAuthManageInfoData, GetAuthManageInfoError, GetAuthManageInfoResponse, GetCardsByCardIdData, GetCardsByCardIdError, GetCardsByCardIdResponse, GetCardsData, GetCardsResponse, GetDecksBrowseData, GetDecksBrowseResponse, GetDecksByDeckIdData, GetDecksByDeckIdError, GetDecksByDeckIdResponse, GetDecksData, GetDecksResponse, GetMeData, GetMeResponse, GetUsersByUserIdDecksData, GetUsersByUserIdDecksError, GetUsersByUserIdDecksResponse, MapIdentityApiAuthConfirmEmailData, PostAuthCallbackByProviderData, PostAuthExchangeData, PostAuthExchangeResponse, PostAuthForgotPasswordData, PostAuthForgotPasswordError, PostAuthLoginData, PostAuthLoginResponse, PostAuthLogoutData, PostAuthManage2FaData, PostAuthManage2FaError, PostAuthManage2FaResponse, PostAuthManageInfoData, PostAuthManageInfoError, PostAuthManageInfoResponse, PostAuthRefreshData, PostAuthRefreshResponse, PostAuthRegisterData, PostAuthRegisterError, PostAuthResendConfirmationEmailData, PostAuthResetPasswordData, PostAuthResetPasswordError, PostDecksData, PostDecksError, PostDecksFoldersData, PostDecksFoldersError, PostDecksFoldersResponse, PostDecksResponse, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsError, PutDecksByDeckIdCardsResponse, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsError, PutDecksByDeckIdSettingsResponse, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdError, PutDecksFoldersByFolderIdResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -296,6 +296,21 @@ export const getCardsOptions = (options?: Options<GetCardsData>) => queryOptions
         return data;
     },
     queryKey: getCardsQueryKey(options)
+});
+
+export const getCardsByCardIdQueryKey = (options: Options<GetCardsByCardIdData>) => createQueryKey('getCardsByCardId', options);
+
+export const getCardsByCardIdOptions = (options: Options<GetCardsByCardIdData>) => queryOptions<GetCardsByCardIdResponse, GetCardsByCardIdError, GetCardsByCardIdResponse, ReturnType<typeof getCardsByCardIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCardsByCardId({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCardsByCardIdQueryKey(options)
 });
 
 export const getDecksBrowseQueryKey = (options?: Options<GetDecksBrowseData>) => createQueryKey('getDecksBrowse', options);

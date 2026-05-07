@@ -45,6 +45,31 @@ export const zCardType = z.enum([
     'Unit'
 ]);
 
+export const zCardDetailDto = z.object({
+    id: z.uuid(),
+    riftboundId: z.string(),
+    setCode: z.string(),
+    setLabel: z.string(),
+    name: z.string(),
+    cleanName: z.string(),
+    collectorNumber: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    type: zCardType,
+    supertype: zCardSupertype,
+    rarity: zCardRarity,
+    energy: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    might: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    power: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    domains: z.array(zCardDomain),
+    imageUrl: z.string().nullable(),
+    richText: z.string().nullable(),
+    plainText: z.string().nullable(),
+    flavourText: z.string().nullable(),
+    artist: z.string().nullable(),
+    alternateArt: z.boolean(),
+    overnumbered: z.boolean(),
+    signature: z.boolean()
+});
+
 export const zCardSummaryDto = z.object({
     id: z.uuid(),
     riftboundId: z.string(),
@@ -392,6 +417,15 @@ export const zGetCardsQuery = z.object({
  * OK
  */
 export const zGetCardsResponse = zPagedResultDtoOfCardSummaryDto;
+
+export const zGetCardsByCardIdPath = z.object({
+    cardId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetCardsByCardIdResponse = zCardDetailDto;
 
 export const zGetDecksBrowseQuery = z.object({
     page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(1),
