@@ -24,13 +24,24 @@ import {
   SquareStack,
 } from "lucide-react"
 import type { DragEndEvent } from "@dnd-kit/core"
-import type { ComponentProps, KeyboardEvent } from "react"
+import type { ComponentProps, FormEvent, KeyboardEvent } from "react"
 import type {
+  CardDomain,
+  CardRarity,
   CardSummaryDto,
+  CardSupertype,
   CardType,
   DeckCardDto,
   DeckCategoryDto,
   DeckDetailDto,
+  DomainFilterMode,
+} from "@/client/types.gen"
+import {
+  CardDomain as CardDomainValues,
+  CardRarity as CardRarityValues,
+  CardSupertype as CardSupertypeValues,
+  CardType as CardTypeValues,
+  DomainFilterMode as DomainFilterModeValues,
 } from "@/client/types.gen"
 import {
   getCardsOptions,
@@ -38,6 +49,7 @@ import {
   getDecksByDeckIdQueryKey,
   putDecksByDeckIdCardsMutation,
 } from "@/client/@tanstack/react-query.gen"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
@@ -50,6 +62,7 @@ export const Route = createFileRoute("/decks/$deckId")({
 
 const SAVE_DELAY_MS = 2500
 const QUICK_ADD_SEARCH_DELAY_MS = 300
+const SEARCH_RESULT_PAGE_SIZE = 24
 const TYPE_ORDER: Array<CardType> = [
   "Legend",
   "Rune",
@@ -58,6 +71,23 @@ const TYPE_ORDER: Array<CardType> = [
   "Gear",
   "Battlefield",
 ]
+const DOMAIN_OPTIONS = [
+  CardDomainValues.FURY,
+  CardDomainValues.CALM,
+  CardDomainValues.MIND,
+  CardDomainValues.CHAOS,
+  CardDomainValues.BODY,
+  CardDomainValues.ORDER,
+]
+const RARITY_OPTIONS = [
+  CardRarityValues.COMMON,
+  CardRarityValues.UNCOMMON,
+  CardRarityValues.RARE,
+  CardRarityValues.EPIC,
+  CardRarityValues.PROMO,
+]
+const TYPE_OPTIONS = Object.values(CardTypeValues)
+const SUPERTYPE_OPTIONS = Object.values(CardSupertypeValues)
 
 type EditableCategory = {
   id: string
@@ -204,6 +234,7 @@ function DeckEditor({
   const [quickAdd, setQuickAdd] = useState("")
   const [debouncedQuickAdd, setDebouncedQuickAdd] = useState("")
   const [selectedQuickAddIndex, setSelectedQuickAddIndex] = useState(0)
+  const [isCardSearchOpen, setIsCardSearchOpen] = useState(false)
   const [dirtyVersion, setDirtyVersion] = useState(0)
   const dirtyRef = useRef(false)
   const latestStateRef = useRef({ categories, cards })
@@ -491,6 +522,7 @@ function DeckEditor({
           onQuickAddKeyDown={handleQuickAddKeyDown}
           onQuickAddHighlight={setSelectedQuickAddIndex}
           onQuickAddSelect={addQuickAddCard}
+          onOpenCardSearch={() => setIsCardSearchOpen(true)}
         />
       ) : null}
 
@@ -509,6 +541,11 @@ function DeckEditor({
           ))}
         </div>
       </DndContext>
+      <CardSearchDialog
+        open={isCardSearchOpen}
+        onOpenChange={setIsCardSearchOpen}
+        onAddCard={addCard}
+      />
     </div>
   )
 }
@@ -591,6 +628,7 @@ function DeckToolbar({
   onQuickAddKeyDown,
   onQuickAddHighlight,
   onQuickAddSelect,
+  onOpenCardSearch,
 }: {
   groupMode: GroupMode
   sortMode: SortMode
@@ -605,6 +643,7 @@ function DeckToolbar({
   onQuickAddKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
   onQuickAddHighlight: (index: number) => void
   onQuickAddSelect: (card: CardSummaryDto) => void
+  onOpenCardSearch: () => void
 }) {
   return (
     <section className="grid w-full gap-4 bg-[#242424] p-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
@@ -615,6 +654,7 @@ function DeckToolbar({
           </span>
           <Button
             variant="outline"
+            onClick={onOpenCardSearch}
             className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
           >
             <Search className="size-4" />
@@ -697,6 +737,302 @@ function DeckToolbar({
         />
       </div>
     </section>
+  )
+}
+
+type CardSearchFilters = {
+  search: string
+  domains: Array<CardDomain>
+  domainMode: DomainFilterMode
+  rarities: Array<CardRarity>
+  type: "" | CardType
+  supertype: "" | CardSupertype
+  energy: string
+  might: string
+}
+
+const DEFAULT_CARD_SEARCH_FILTERS: CardSearchFilters = {
+  search: "",
+  domains: [],
+  domainMode: DomainFilterModeValues.OR,
+  rarities: [],
+  type: "",
+  supertype: "",
+  energy: "",
+  might: "",
+}
+
+function CardSearchDialog({
+  open,
+  onOpenChange,
+  onAddCard,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onAddCard: (card: CardSummaryDto) => void
+}) {
+  const [filters, setFilters] = useState<CardSearchFilters>(
+    DEFAULT_CARD_SEARCH_FILTERS
+  )
+  const [submittedFilters, setSubmittedFilters] =
+    useState<CardSearchFilters | null>(null)
+  const searchQuery = useQuery({
+    ...getCardsOptions({
+      query: submittedFilters
+        ? {
+            Search: submittedFilters.search || undefined,
+            Domains: submittedFilters.domains,
+            DomainMode: submittedFilters.domainMode,
+            Rarities: submittedFilters.rarities,
+            Types: submittedFilters.type ? [submittedFilters.type] : undefined,
+            Supertypes: submittedFilters.supertype
+              ? [submittedFilters.supertype]
+              : undefined,
+            Energy: submittedFilters.energy || undefined,
+            Might: submittedFilters.might || undefined,
+            Page: 1,
+            PageSize: SEARCH_RESULT_PAGE_SIZE,
+            SortBy: "name",
+          }
+        : undefined,
+    }),
+    enabled: open && submittedFilters !== null,
+  })
+
+  function updateFilter<TFilter extends keyof CardSearchFilters>(
+    key: TFilter,
+    value: CardSearchFilters[TFilter]
+  ) {
+    setFilters((current) => ({ ...current, [key]: value }))
+  }
+
+  function toggleDomain(domain: CardDomain) {
+    updateFilter(
+      "domains",
+      filters.domains.includes(domain)
+        ? filters.domains.filter((item) => item !== domain)
+        : [...filters.domains, domain]
+    )
+  }
+
+  function toggleRarity(rarity: CardRarity) {
+    updateFilter(
+      "rarities",
+      filters.rarities.includes(rarity)
+        ? filters.rarities.filter((item) => item !== rarity)
+        : [...filters.rarities, rarity]
+    )
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSubmittedFilters(filters)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100dvh-3rem)] max-w-[1280px] overflow-y-auto border-[#2f2f2f] bg-[#222222] p-7 text-white">
+        <DialogTitle className="text-4xl font-normal tracking-normal">
+          Card Search
+        </DialogTitle>
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="flex gap-3">
+            <Input
+              value={filters.search}
+              onChange={(event) => updateFilter("search", event.target.value)}
+              placeholder="Card Search"
+              className="h-9 border-[#4a4a4a] bg-black text-white"
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-9 border-[#4a4a4a] bg-black px-4 text-white hover:bg-[#161616]"
+            >
+              <Search className="size-4" />
+              Search
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-xl">
+            <IconToggleGroup
+              label="Domains:"
+              values={DOMAIN_OPTIONS}
+              selectedValues={filters.domains}
+              iconPath={(domain) => `/icons/domain/${domain}.png`}
+              onToggle={toggleDomain}
+            />
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-xl">Logic:</span>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  checked={filters.domainMode === DomainFilterModeValues.OR}
+                  onChange={() =>
+                    updateFilter("domainMode", DomainFilterModeValues.OR)
+                  }
+                />
+                Or
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  checked={filters.domainMode === DomainFilterModeValues.AND}
+                  onChange={() =>
+                    updateFilter("domainMode", DomainFilterModeValues.AND)
+                  }
+                />
+                And
+              </label>
+            </div>
+          </div>
+
+          <IconToggleGroup
+            label="Rarity:"
+            values={RARITY_OPTIONS}
+            selectedValues={filters.rarities}
+            iconPath={(rarity) =>
+              rarity === CardRarityValues.PROMO
+                ? "/icons/rarity/OverNumbered.png"
+                : `/icons/rarity/${rarity}.png`
+            }
+            onToggle={toggleRarity}
+          />
+
+          <div className="grid max-w-[680px] gap-3 sm:grid-cols-2">
+            <Select
+              value={filters.type}
+              onChange={(event) =>
+                updateFilter("type", event.target.value as "" | CardType)
+              }
+              className="border-[#4a4a4a] bg-black text-white"
+            >
+              <option value="">Type</option>
+              {TYPE_OPTIONS.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filters.supertype}
+              onChange={(event) =>
+                updateFilter(
+                  "supertype",
+                  event.target.value as "" | CardSupertype
+                )
+              }
+              className="border-[#4a4a4a] bg-black text-white"
+            >
+              <option value="">Supertype</option>
+              {SUPERTYPE_OPTIONS.map((supertype) => (
+                <option key={supertype} value={supertype}>
+                  {supertype}
+                </option>
+              ))}
+            </Select>
+            <Input
+              value={filters.energy}
+              onChange={(event) => updateFilter("energy", event.target.value)}
+              placeholder="Energy Cost (e.g. >=5)"
+              className="border-[#4a4a4a] bg-black text-white"
+            />
+            <Input
+              value={filters.might}
+              onChange={(event) => updateFilter("might", event.target.value)}
+              placeholder="Might (e.g. <4)"
+              className="border-[#4a4a4a] bg-black text-white"
+            />
+          </div>
+        </form>
+
+        <section className="space-y-3">
+          <h2 className="text-3xl font-normal tracking-normal">Results</h2>
+          {searchQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Searching cards...</p>
+          ) : null}
+          {searchQuery.isError ? (
+            <p className="text-sm text-destructive">Unable to search cards.</p>
+          ) : null}
+          {submittedFilters && !searchQuery.isLoading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {(searchQuery.data?.items ?? []).map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  className="group overflow-hidden rounded-md bg-black text-left ring-1 ring-white/10 transition hover:ring-primary"
+                  onClick={() => onAddCard(card)}
+                >
+                  {card.imageUrl ? (
+                    <img
+                      src={card.imageUrl}
+                      alt={card.name}
+                      className="aspect-[0.714/1] w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex aspect-[0.714/1] items-center justify-center p-3 text-center text-sm">
+                      {card.name}
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <p className="line-clamp-1 text-sm font-medium">
+                      {card.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{card.type}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function IconToggleGroup<TValue extends string>({
+  label,
+  values,
+  selectedValues,
+  iconPath,
+  onToggle,
+}: {
+  label: string
+  values: Array<TValue>
+  selectedValues: Array<TValue>
+  iconPath: (value: TValue) => string
+  onToggle: (value: TValue) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-xl">{label}</span>
+      {values.map((value) => {
+        const isSelected = selectedValues.includes(value)
+
+        return (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={isSelected}
+            title={value}
+            className={cn(
+              "flex size-8 items-center justify-center rounded-full ring-offset-2 ring-offset-[#222222] transition",
+              isSelected
+                ? "ring-2 ring-primary"
+                : "opacity-75 hover:opacity-100"
+            )}
+            onClick={() => onToggle(value)}
+          >
+            <img
+              src={iconPath(value)}
+              alt={value}
+              className="max-h-8 max-w-8 object-contain"
+            />
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
