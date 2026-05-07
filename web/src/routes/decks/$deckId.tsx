@@ -16,12 +16,14 @@ import { CSS } from "@dnd-kit/utilities"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
+  ArrowDownWideNarrow,
   Check,
   Grip,
   MoreHorizontal,
   Search,
   Settings,
   SlidersHorizontal,
+  SquareStack,
 } from "lucide-react"
 import type { DragEndEvent } from "@dnd-kit/core"
 import type { ComponentProps } from "react"
@@ -593,7 +595,7 @@ function DeckToolbar({
       </div>
 
       <div className="flex items-end gap-3">
-        <SlidersHorizontal className="mb-2 size-5 text-[#d8d8d8]" />
+        <SquareStack className="mb-2 size-5 text-[#d8d8d8]" />
         <LabeledSelect
           label="Group By"
           value={groupMode}
@@ -607,7 +609,7 @@ function DeckToolbar({
       </div>
 
       <div className="flex items-end gap-3">
-        <Grip className="mb-2 size-5 text-[#d8d8d8]" />
+        <ArrowDownWideNarrow className="mb-2 size-5 text-[#d8d8d8]" />
         <LabeledSelect
           label="Sort By"
           value={sortMode}
