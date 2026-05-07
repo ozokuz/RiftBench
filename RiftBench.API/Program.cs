@@ -130,6 +130,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 var app = builder.Build();
 var webBase = app.Configuration["WebBase"] ?? "/";
 
+static bool IsLocalRedirectPath(string? value)
+{
+    return value is { Length: > 0 } &&
+           value.StartsWith('/') &&
+           !value.StartsWith("//", StringComparison.Ordinal);
+}
+
 app.UseForwardedHeaders();
 app.UseCors("Frontend");
 app.UseAuthentication();
@@ -148,9 +155,7 @@ app.MapGet("/auth/login/github", (HttpContext http, string? returnUrl) =>
 {
     var properties = new AuthenticationProperties
     {
-        RedirectUri = returnUrl is { Length: > 0 } && returnUrl.StartsWith("/")
-            ? returnUrl
-            : "/",
+        RedirectUri = IsLocalRedirectPath(returnUrl) ? returnUrl : "/",
     };
 
     return Results.Challenge(properties, [OpenIddictClientWebIntegrationConstants.Providers.GitHub]);
@@ -159,9 +164,7 @@ app.MapGet("/auth/login/discord", (HttpContext http, string? returnUrl) =>
 {
     var properties = new AuthenticationProperties
     {
-        RedirectUri = returnUrl is { Length: > 0 } && returnUrl.StartsWith("/")
-            ? returnUrl
-            : "/"
+        RedirectUri = IsLocalRedirectPath(returnUrl) ? returnUrl : "/"
     };
 
     return Results.Challenge(properties, [OpenIddictClientWebIntegrationConstants.Providers.Discord]);
@@ -295,6 +298,14 @@ identityAuthGroup.AddEndpointFilter(async (context, next) =>
 
     return await next(context);
 });
-identityAuthGroup.MapIdentityApi<ApplicationUser>();
+identityAuthGroup.MapIdentityApi<ApplicationUser>()
+    .Add(endpointBuilder =>
+    {
+        if (endpointBuilder is RouteEndpointBuilder routeEndpointBuilder &&
+            routeEndpointBuilder.RoutePattern.RawText is not ("/auth/refresh" or "/refresh"))
+        {
+            endpointBuilder.Metadata.Add(new ExcludeFromDescriptionAttribute());
+        }
+    });
 app.MapControllers();
 app.Run();

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdErrors, DeleteDecksByDeckIdResponses, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdErrors, DeleteDecksFoldersByFolderIdResponses, GetAuthCallbackByProviderData, GetAuthCallbackByProviderResponses, GetAuthLoginDiscordData, GetAuthLoginDiscordResponses, GetAuthLoginGithubData, GetAuthLoginGithubResponses, GetAuthManageInfoData, GetAuthManageInfoErrors, GetAuthManageInfoResponses, GetCardsByCardIdData, GetCardsByCardIdErrors, GetCardsByCardIdResponses, GetCardsData, GetCardsResponses, GetDecksBrowseData, GetDecksBrowseResponses, GetDecksByDeckIdData, GetDecksByDeckIdErrors, GetDecksByDeckIdResponses, GetDecksData, GetDecksResponses, GetMeData, GetMeResponses, GetUsersByUserIdDecksData, GetUsersByUserIdDecksErrors, GetUsersByUserIdDecksResponses, MapIdentityApiAuthConfirmEmailData, MapIdentityApiAuthConfirmEmailResponses, PostAuthCallbackByProviderData, PostAuthCallbackByProviderResponses, PostAuthExchangeData, PostAuthExchangeResponses, PostAuthForgotPasswordData, PostAuthForgotPasswordErrors, PostAuthForgotPasswordResponses, PostAuthLoginData, PostAuthLoginResponses, PostAuthLogoutData, PostAuthLogoutResponses, PostAuthManage2FaData, PostAuthManage2FaErrors, PostAuthManage2FaResponses, PostAuthManageInfoData, PostAuthManageInfoErrors, PostAuthManageInfoResponses, PostAuthRefreshData, PostAuthRefreshResponses, PostAuthRegisterData, PostAuthRegisterErrors, PostAuthRegisterResponses, PostAuthResendConfirmationEmailData, PostAuthResendConfirmationEmailResponses, PostAuthResetPasswordData, PostAuthResetPasswordErrors, PostAuthResetPasswordResponses, PostDecksData, PostDecksErrors, PostDecksFoldersData, PostDecksFoldersErrors, PostDecksFoldersResponses, PostDecksResponses, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsErrors, PutDecksByDeckIdCardsResponses, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsErrors, PutDecksByDeckIdSettingsResponses, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdErrors, PutDecksFoldersByFolderIdResponses } from './types.gen';
+import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdErrors, DeleteDecksByDeckIdResponses, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdErrors, DeleteDecksFoldersByFolderIdResponses, GetAuthCallbackByProviderData, GetAuthCallbackByProviderResponses, GetAuthLoginDiscordData, GetAuthLoginDiscordResponses, GetAuthLoginGithubData, GetAuthLoginGithubResponses, GetCardsByCardIdData, GetCardsByCardIdErrors, GetCardsByCardIdResponses, GetCardsData, GetCardsResponses, GetDecksBrowseData, GetDecksBrowseResponses, GetDecksByDeckIdData, GetDecksByDeckIdErrors, GetDecksByDeckIdResponses, GetDecksData, GetDecksResponses, GetMeData, GetMeResponses, GetUsersByUserIdDecksData, GetUsersByUserIdDecksErrors, GetUsersByUserIdDecksResponses, PostAuthCallbackByProviderData, PostAuthCallbackByProviderResponses, PostAuthExchangeData, PostAuthExchangeResponses, PostAuthLogoutData, PostAuthLogoutResponses, PostAuthRefreshData, PostAuthRefreshResponses, PostDecksData, PostDecksErrors, PostDecksFoldersData, PostDecksFoldersErrors, PostDecksFoldersResponses, PostDecksResponses, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsErrors, PutDecksByDeckIdCardsResponses, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsErrors, PutDecksByDeckIdSettingsResponses, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdErrors, PutDecksFoldersByFolderIdResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -46,75 +46,8 @@ export const postAuthLogout = <ThrowOnError extends boolean = false>(options: Op
 
 export const getMe = <ThrowOnError extends boolean = false>(options?: Options<GetMeData, ThrowOnError>) => (options?.client ?? client).get<GetMeResponses, unknown, ThrowOnError>({ url: '/me', ...options });
 
-export const postAuthRegister = <ThrowOnError extends boolean = false>(options: Options<PostAuthRegisterData, ThrowOnError>) => (options.client ?? client).post<PostAuthRegisterResponses, PostAuthRegisterErrors, ThrowOnError>({
-    url: '/auth/register',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const postAuthLogin = <ThrowOnError extends boolean = false>(options: Options<PostAuthLoginData, ThrowOnError>) => (options.client ?? client).post<PostAuthLoginResponses, unknown, ThrowOnError>({
-    url: '/auth/login',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
 export const postAuthRefresh = <ThrowOnError extends boolean = false>(options: Options<PostAuthRefreshData, ThrowOnError>) => (options.client ?? client).post<PostAuthRefreshResponses, unknown, ThrowOnError>({
     url: '/auth/refresh',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const mapIdentityApiAuthConfirmEmail = <ThrowOnError extends boolean = false>(options: Options<MapIdentityApiAuthConfirmEmailData, ThrowOnError>) => (options.client ?? client).get<MapIdentityApiAuthConfirmEmailResponses, unknown, ThrowOnError>({ url: '/auth/confirmEmail', ...options });
-
-export const postAuthResendConfirmationEmail = <ThrowOnError extends boolean = false>(options: Options<PostAuthResendConfirmationEmailData, ThrowOnError>) => (options.client ?? client).post<PostAuthResendConfirmationEmailResponses, unknown, ThrowOnError>({
-    url: '/auth/resendConfirmationEmail',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const postAuthForgotPassword = <ThrowOnError extends boolean = false>(options: Options<PostAuthForgotPasswordData, ThrowOnError>) => (options.client ?? client).post<PostAuthForgotPasswordResponses, PostAuthForgotPasswordErrors, ThrowOnError>({
-    url: '/auth/forgotPassword',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const postAuthResetPassword = <ThrowOnError extends boolean = false>(options: Options<PostAuthResetPasswordData, ThrowOnError>) => (options.client ?? client).post<PostAuthResetPasswordResponses, PostAuthResetPasswordErrors, ThrowOnError>({
-    url: '/auth/resetPassword',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const postAuthManage2Fa = <ThrowOnError extends boolean = false>(options: Options<PostAuthManage2FaData, ThrowOnError>) => (options.client ?? client).post<PostAuthManage2FaResponses, PostAuthManage2FaErrors, ThrowOnError>({
-    url: '/auth/manage/2fa',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const getAuthManageInfo = <ThrowOnError extends boolean = false>(options?: Options<GetAuthManageInfoData, ThrowOnError>) => (options?.client ?? client).get<GetAuthManageInfoResponses, GetAuthManageInfoErrors, ThrowOnError>({ url: '/auth/manage/info', ...options });
-
-export const postAuthManageInfo = <ThrowOnError extends boolean = false>(options: Options<PostAuthManageInfoData, ThrowOnError>) => (options.client ?? client).post<PostAuthManageInfoResponses, PostAuthManageInfoErrors, ThrowOnError>({
-    url: '/auth/manage/info',
     ...options,
     headers: {
         'Content-Type': 'application/json',

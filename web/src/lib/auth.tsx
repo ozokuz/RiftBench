@@ -5,9 +5,9 @@ import {
   type ReactNode,
 } from "react"
 import { useServerFn } from "@tanstack/react-start"
-import { getCurrentUserFn } from "../server/auth"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { client } from "@/client/client.gen"
+import { getCurrentUserFn } from "@/server/auth"
 
 type User = {
   accessToken: string
@@ -21,11 +21,17 @@ type AuthContextType = {
   isAuthenticated: boolean
   isLoading: boolean
   refetch: () => void
+  setUser: (user: User | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const currentUserQueryKey = ["me"] as const
 
 export function setClientAccessToken(accessToken: string) {
+  if (typeof window === "undefined") {
+    return
+  }
+
   client.setConfig({
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -33,26 +39,53 @@ export function setClientAccessToken(accessToken: string) {
   })
 }
 
+export function clearClientAccessToken() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  client.setConfig({
+    headers: {
+      Authorization: null,
+    },
+  })
+}
+
+export async function loadCurrentUser(getCurrentUser: () => Promise<User | null>) {
+  const user = await getCurrentUser()
+  if (user) {
+    setClientAccessToken(user.accessToken)
+  } else {
+    clearClientAccessToken()
+  }
+
+  return user
+}
+
+export function currentUserQueryOptions(getCurrentUser: () => Promise<User | null>) {
+  return {
+    queryKey: currentUserQueryKey,
+    queryFn: () => loadCurrentUser(getCurrentUser),
+    staleTime: 60_000,
+  }
+}
+
+export function setCurrentUserCache(queryClient: QueryClient, user: User | null) {
+  queryClient.setQueryData(currentUserQueryKey, user)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const getCurrentUser = useServerFn(getCurrentUserFn)
+  const queryClient = useQueryClient()
   const {
     data: user,
     isLoading,
     refetch,
-  } = useQuery({
-    queryKey: ["me"],
-    queryFn: async () => {
-      const currentUser = await getCurrentUser()
-      if (currentUser) {
-        setClientAccessToken(currentUser.accessToken)
-      }
-
-      return currentUser
-    },
-  })
+  } = useQuery(currentUserQueryOptions(getCurrentUser))
 
   useEffect(() => {
     if (!user) {
+      clearClientAccessToken()
       return
     }
 
@@ -66,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         refetch,
+        setUser: (nextUser) => setCurrentUserCache(queryClient, nextUser),
       }}
     >
       {children}

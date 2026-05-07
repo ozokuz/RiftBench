@@ -55,12 +55,13 @@ function authHeader(token: string) {
 
 async function refreshSessionAccessToken() {
   const session = await useAppSession()
-  if (!session.data.refreshToken) {
+  const refreshToken = session.data.refreshToken
+  if (!refreshToken) {
     return null
   }
 
   const tokens = await postAuthRefresh({
-    body: { refreshToken: session.data.refreshToken },
+    body: { refreshToken },
     baseUrl: process.env.VITE_API_BASE,
   })
 

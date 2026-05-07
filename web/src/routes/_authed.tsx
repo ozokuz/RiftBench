@@ -1,11 +1,13 @@
 import {Outlet, createFileRoute, redirect} from '@tanstack/react-router'
 import {getCurrentUserFn} from "@/server/auth.ts";
-import {setClientAccessToken} from "@/lib/auth";
+import {currentUserQueryOptions, setClientAccessToken} from "@/lib/auth";
 
 export const Route = createFileRoute('/_authed')({
     component: Outlet,
-    beforeLoad: async ({location}) => {
-        const user = await getCurrentUserFn();
+    beforeLoad: async ({context, location}) => {
+        const user = await context.queryClient.ensureQueryData(
+            currentUserQueryOptions(() => getCurrentUserFn()),
+        );
         
         if (!user) {
             throw redirect({

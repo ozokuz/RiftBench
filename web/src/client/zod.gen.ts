@@ -188,37 +188,6 @@ export const zExchangeExternalLoginRequest = z.object({
     code: z.string()
 });
 
-export const zForgotPasswordRequest = z.object({
-    email: z.string()
-});
-
-export const zHttpValidationProblemDetails = z.object({
-    type: z.string().nullish(),
-    title: z.string().nullish(),
-    status: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullish(),
-    detail: z.string().nullish(),
-    instance: z.string().nullish(),
-    errors: z.record(z.string(), z.array(z.string())).optional()
-});
-
-export const zInfoRequest = z.object({
-    newEmail: z.string().nullish(),
-    newPassword: z.string().nullish(),
-    oldPassword: z.string().nullish()
-});
-
-export const zInfoResponse = z.object({
-    email: z.string(),
-    isEmailConfirmed: z.boolean()
-});
-
-export const zLoginRequest = z.object({
-    email: z.string(),
-    password: z.string(),
-    twoFactorCode: z.string().nullish(),
-    twoFactorRecoveryCode: z.string().nullish()
-});
-
 export const zPagedResultDtoOfCardSummaryDto = z.object({
     items: z.array(zCardSummaryDto),
     page: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
@@ -243,37 +212,6 @@ export const zProblemDetails = z.object({
 
 export const zRefreshRequest = z.object({
     refreshToken: z.string()
-});
-
-export const zRegisterRequest = z.object({
-    email: z.string(),
-    password: z.string()
-});
-
-export const zResendConfirmationEmailRequest = z.object({
-    email: z.string()
-});
-
-export const zResetPasswordRequest = z.object({
-    email: z.string(),
-    resetCode: z.string(),
-    newPassword: z.string()
-});
-
-export const zTwoFactorRequest = z.object({
-    enable: z.boolean().nullish(),
-    twoFactorCode: z.string().nullish(),
-    resetSharedKey: z.boolean().optional(),
-    resetRecoveryCodes: z.boolean().optional(),
-    forgetMachine: z.boolean().optional()
-});
-
-export const zTwoFactorResponse = z.object({
-    sharedKey: z.string(),
-    recoveryCodesLeft: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    recoveryCodes: z.array(z.string()).nullish(),
-    isTwoFactorEnabled: z.boolean(),
-    isMachineRemembered: z.boolean()
 });
 
 export const zUpdateDeckFolderRequest = z.object({
@@ -346,57 +284,12 @@ export const zPostAuthLogoutBody = z.unknown();
  */
 export const zGetMeResponse = zUserInfoDto;
 
-export const zPostAuthRegisterBody = zRegisterRequest;
-
-export const zPostAuthLoginBody = zLoginRequest;
-
-export const zPostAuthLoginQuery = z.object({
-    useCookies: z.boolean().optional(),
-    useSessionCookies: z.boolean().optional()
-});
-
-/**
- * OK
- */
-export const zPostAuthLoginResponse = zAccessTokenResponse;
-
 export const zPostAuthRefreshBody = zRefreshRequest;
 
 /**
  * OK
  */
 export const zPostAuthRefreshResponse = zAccessTokenResponse;
-
-export const zMapIdentityApiAuthConfirmEmailQuery = z.object({
-    userId: z.string(),
-    code: z.string(),
-    changedEmail: z.string().optional()
-});
-
-export const zPostAuthResendConfirmationEmailBody = zResendConfirmationEmailRequest;
-
-export const zPostAuthForgotPasswordBody = zForgotPasswordRequest;
-
-export const zPostAuthResetPasswordBody = zResetPasswordRequest;
-
-export const zPostAuthManage2FaBody = zTwoFactorRequest;
-
-/**
- * OK
- */
-export const zPostAuthManage2FaResponse = zTwoFactorResponse;
-
-/**
- * OK
- */
-export const zGetAuthManageInfoResponse = zInfoResponse;
-
-export const zPostAuthManageInfoBody = zInfoRequest;
-
-/**
- * OK
- */
-export const zPostAuthManageInfoResponse = zInfoResponse;
 
 export const zGetCardsQuery = z.object({
     Search: z.string().optional(),

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDecksByDeckId, deleteDecksFoldersByFolderId, getAuthCallbackByProvider, getAuthLoginDiscord, getAuthLoginGithub, getAuthManageInfo, getCards, getCardsByCardId, getDecks, getDecksBrowse, getDecksByDeckId, getMe, getUsersByUserIdDecks, mapIdentityApiAuthConfirmEmail, type Options, postAuthCallbackByProvider, postAuthExchange, postAuthForgotPassword, postAuthLogin, postAuthLogout, postAuthManage2Fa, postAuthManageInfo, postAuthRefresh, postAuthRegister, postAuthResendConfirmationEmail, postAuthResetPassword, postDecks, postDecksFolders, putDecksByDeckIdCards, putDecksByDeckIdSettings, putDecksFoldersByFolderId } from '../sdk.gen';
-import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdError, DeleteDecksByDeckIdResponse, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdError, DeleteDecksFoldersByFolderIdResponse, GetAuthCallbackByProviderData, GetAuthLoginDiscordData, GetAuthLoginGithubData, GetAuthManageInfoData, GetAuthManageInfoError, GetAuthManageInfoResponse, GetCardsByCardIdData, GetCardsByCardIdError, GetCardsByCardIdResponse, GetCardsData, GetCardsResponse, GetDecksBrowseData, GetDecksBrowseResponse, GetDecksByDeckIdData, GetDecksByDeckIdError, GetDecksByDeckIdResponse, GetDecksData, GetDecksResponse, GetMeData, GetMeResponse, GetUsersByUserIdDecksData, GetUsersByUserIdDecksError, GetUsersByUserIdDecksResponse, MapIdentityApiAuthConfirmEmailData, PostAuthCallbackByProviderData, PostAuthExchangeData, PostAuthExchangeResponse, PostAuthForgotPasswordData, PostAuthForgotPasswordError, PostAuthLoginData, PostAuthLoginResponse, PostAuthLogoutData, PostAuthManage2FaData, PostAuthManage2FaError, PostAuthManage2FaResponse, PostAuthManageInfoData, PostAuthManageInfoError, PostAuthManageInfoResponse, PostAuthRefreshData, PostAuthRefreshResponse, PostAuthRegisterData, PostAuthRegisterError, PostAuthResendConfirmationEmailData, PostAuthResetPasswordData, PostAuthResetPasswordError, PostDecksData, PostDecksError, PostDecksFoldersData, PostDecksFoldersError, PostDecksFoldersResponse, PostDecksResponse, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsError, PutDecksByDeckIdCardsResponse, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsError, PutDecksByDeckIdSettingsResponse, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdError, PutDecksFoldersByFolderIdResponse } from '../types.gen';
+import { deleteDecksByDeckId, deleteDecksFoldersByFolderId, getAuthCallbackByProvider, getAuthLoginDiscord, getAuthLoginGithub, getCards, getCardsByCardId, getDecks, getDecksBrowse, getDecksByDeckId, getMe, getUsersByUserIdDecks, type Options, postAuthCallbackByProvider, postAuthExchange, postAuthLogout, postAuthRefresh, postDecks, postDecksFolders, putDecksByDeckIdCards, putDecksByDeckIdSettings, putDecksFoldersByFolderId } from '../sdk.gen';
+import type { DeleteDecksByDeckIdData, DeleteDecksByDeckIdError, DeleteDecksByDeckIdResponse, DeleteDecksFoldersByFolderIdData, DeleteDecksFoldersByFolderIdError, DeleteDecksFoldersByFolderIdResponse, GetAuthCallbackByProviderData, GetAuthLoginDiscordData, GetAuthLoginGithubData, GetCardsByCardIdData, GetCardsByCardIdError, GetCardsByCardIdResponse, GetCardsData, GetCardsResponse, GetDecksBrowseData, GetDecksBrowseResponse, GetDecksByDeckIdData, GetDecksByDeckIdError, GetDecksByDeckIdResponse, GetDecksData, GetDecksResponse, GetMeData, GetMeResponse, GetUsersByUserIdDecksData, GetUsersByUserIdDecksError, GetUsersByUserIdDecksResponse, PostAuthCallbackByProviderData, PostAuthExchangeData, PostAuthExchangeResponse, PostAuthLogoutData, PostAuthRefreshData, PostAuthRefreshResponse, PostDecksData, PostDecksError, PostDecksFoldersData, PostDecksFoldersError, PostDecksFoldersResponse, PostDecksResponse, PutDecksByDeckIdCardsData, PutDecksByDeckIdCardsError, PutDecksByDeckIdCardsResponse, PutDecksByDeckIdSettingsData, PutDecksByDeckIdSettingsError, PutDecksByDeckIdSettingsResponse, PutDecksFoldersByFolderIdData, PutDecksFoldersByFolderIdError, PutDecksFoldersByFolderIdResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -141,138 +141,10 @@ export const getMeOptions = (options?: Options<GetMeData>) => queryOptions<GetMe
     queryKey: getMeQueryKey(options)
 });
 
-export const postAuthRegisterMutation = (options?: Partial<Options<PostAuthRegisterData>>): UseMutationOptions<unknown, PostAuthRegisterError, Options<PostAuthRegisterData>> => {
-    const mutationOptions: UseMutationOptions<unknown, PostAuthRegisterError, Options<PostAuthRegisterData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthRegister({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const postAuthLoginMutation = (options?: Partial<Options<PostAuthLoginData>>): UseMutationOptions<PostAuthLoginResponse, DefaultError, Options<PostAuthLoginData>> => {
-    const mutationOptions: UseMutationOptions<PostAuthLoginResponse, DefaultError, Options<PostAuthLoginData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthLogin({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
 export const postAuthRefreshMutation = (options?: Partial<Options<PostAuthRefreshData>>): UseMutationOptions<PostAuthRefreshResponse, DefaultError, Options<PostAuthRefreshData>> => {
     const mutationOptions: UseMutationOptions<PostAuthRefreshResponse, DefaultError, Options<PostAuthRefreshData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postAuthRefresh({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const mapIdentityApiAuthConfirmEmailQueryKey = (options: Options<MapIdentityApiAuthConfirmEmailData>) => createQueryKey('mapIdentityApiAuthConfirmEmail', options);
-
-export const mapIdentityApiAuthConfirmEmailOptions = (options: Options<MapIdentityApiAuthConfirmEmailData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof mapIdentityApiAuthConfirmEmailQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await mapIdentityApiAuthConfirmEmail({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: mapIdentityApiAuthConfirmEmailQueryKey(options)
-});
-
-export const postAuthResendConfirmationEmailMutation = (options?: Partial<Options<PostAuthResendConfirmationEmailData>>): UseMutationOptions<unknown, DefaultError, Options<PostAuthResendConfirmationEmailData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostAuthResendConfirmationEmailData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthResendConfirmationEmail({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const postAuthForgotPasswordMutation = (options?: Partial<Options<PostAuthForgotPasswordData>>): UseMutationOptions<unknown, PostAuthForgotPasswordError, Options<PostAuthForgotPasswordData>> => {
-    const mutationOptions: UseMutationOptions<unknown, PostAuthForgotPasswordError, Options<PostAuthForgotPasswordData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthForgotPassword({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const postAuthResetPasswordMutation = (options?: Partial<Options<PostAuthResetPasswordData>>): UseMutationOptions<unknown, PostAuthResetPasswordError, Options<PostAuthResetPasswordData>> => {
-    const mutationOptions: UseMutationOptions<unknown, PostAuthResetPasswordError, Options<PostAuthResetPasswordData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthResetPassword({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const postAuthManage2FaMutation = (options?: Partial<Options<PostAuthManage2FaData>>): UseMutationOptions<PostAuthManage2FaResponse, PostAuthManage2FaError, Options<PostAuthManage2FaData>> => {
-    const mutationOptions: UseMutationOptions<PostAuthManage2FaResponse, PostAuthManage2FaError, Options<PostAuthManage2FaData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthManage2Fa({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const getAuthManageInfoQueryKey = (options?: Options<GetAuthManageInfoData>) => createQueryKey('getAuthManageInfo', options);
-
-export const getAuthManageInfoOptions = (options?: Options<GetAuthManageInfoData>) => queryOptions<GetAuthManageInfoResponse, GetAuthManageInfoError, GetAuthManageInfoResponse, ReturnType<typeof getAuthManageInfoQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getAuthManageInfo({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getAuthManageInfoQueryKey(options)
-});
-
-export const postAuthManageInfoMutation = (options?: Partial<Options<PostAuthManageInfoData>>): UseMutationOptions<PostAuthManageInfoResponse, PostAuthManageInfoError, Options<PostAuthManageInfoData>> => {
-    const mutationOptions: UseMutationOptions<PostAuthManageInfoResponse, PostAuthManageInfoError, Options<PostAuthManageInfoData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postAuthManageInfo({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

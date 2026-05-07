@@ -202,39 +202,6 @@ export type ExchangeExternalLoginRequest = {
     code: string;
 };
 
-export type ForgotPasswordRequest = {
-    email: string;
-};
-
-export type HttpValidationProblemDetails = {
-    type?: null | string;
-    title?: null | string;
-    status?: null | number;
-    detail?: null | string;
-    instance?: null | string;
-    errors?: {
-        [key: string]: Array<string>;
-    };
-};
-
-export type InfoRequest = {
-    newEmail?: null | string;
-    newPassword?: null | string;
-    oldPassword?: null | string;
-};
-
-export type InfoResponse = {
-    email: string;
-    isEmailConfirmed: boolean;
-};
-
-export type LoginRequest = {
-    email: string;
-    password: string;
-    twoFactorCode?: null | string;
-    twoFactorRecoveryCode?: null | string;
-};
-
 export type PagedResultDtoOfCardSummaryDto = {
     items: Array<CardSummaryDto>;
     page: number;
@@ -261,40 +228,9 @@ export type RefreshRequest = {
     refreshToken: string;
 };
 
-export type RegisterRequest = {
-    email: string;
-    password: string;
-};
-
 export type ReplaceDeckContentsRequest = {
     categories: Array<UpsertDeckCategoryRequest>;
     cards: Array<UpsertDeckCardRequest>;
-};
-
-export type ResendConfirmationEmailRequest = {
-    email: string;
-};
-
-export type ResetPasswordRequest = {
-    email: string;
-    resetCode: string;
-    newPassword: string;
-};
-
-export type TwoFactorRequest = {
-    enable?: null | boolean;
-    twoFactorCode?: null | string;
-    resetSharedKey?: boolean;
-    resetRecoveryCodes?: boolean;
-    forgetMachine?: boolean;
-};
-
-export type TwoFactorResponse = {
-    sharedKey: string;
-    recoveryCodesLeft: number;
-    recoveryCodes?: null | Array<string>;
-    isTwoFactorEnabled: boolean;
-    isMachineRemembered: boolean;
 };
 
 export type UpdateDeckFolderRequest = {
@@ -448,48 +384,6 @@ export type GetMeResponses = {
 
 export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
 
-export type PostAuthRegisterData = {
-    body: RegisterRequest;
-    path?: never;
-    query?: never;
-    url: '/auth/register';
-};
-
-export type PostAuthRegisterErrors = {
-    /**
-     * Bad Request
-     */
-    400: HttpValidationProblemDetails;
-};
-
-export type PostAuthRegisterError = PostAuthRegisterErrors[keyof PostAuthRegisterErrors];
-
-export type PostAuthRegisterResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PostAuthLoginData = {
-    body: LoginRequest;
-    path?: never;
-    query?: {
-        useCookies?: boolean;
-        useSessionCookies?: boolean;
-    };
-    url: '/auth/login';
-};
-
-export type PostAuthLoginResponses = {
-    /**
-     * OK
-     */
-    200: AccessTokenResponse;
-};
-
-export type PostAuthLoginResponse = PostAuthLoginResponses[keyof PostAuthLoginResponses];
-
 export type PostAuthRefreshData = {
     body: RefreshRequest;
     path?: never;
@@ -505,171 +399,6 @@ export type PostAuthRefreshResponses = {
 };
 
 export type PostAuthRefreshResponse = PostAuthRefreshResponses[keyof PostAuthRefreshResponses];
-
-export type MapIdentityApiAuthConfirmEmailData = {
-    body?: never;
-    path?: never;
-    query: {
-        userId: string;
-        code: string;
-        changedEmail?: string;
-    };
-    url: '/auth/confirmEmail';
-};
-
-export type MapIdentityApiAuthConfirmEmailResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PostAuthResendConfirmationEmailData = {
-    body: ResendConfirmationEmailRequest;
-    path?: never;
-    query?: never;
-    url: '/auth/resendConfirmationEmail';
-};
-
-export type PostAuthResendConfirmationEmailResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PostAuthForgotPasswordData = {
-    body: ForgotPasswordRequest;
-    path?: never;
-    query?: never;
-    url: '/auth/forgotPassword';
-};
-
-export type PostAuthForgotPasswordErrors = {
-    /**
-     * Bad Request
-     */
-    400: HttpValidationProblemDetails;
-};
-
-export type PostAuthForgotPasswordError = PostAuthForgotPasswordErrors[keyof PostAuthForgotPasswordErrors];
-
-export type PostAuthForgotPasswordResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PostAuthResetPasswordData = {
-    body: ResetPasswordRequest;
-    path?: never;
-    query?: never;
-    url: '/auth/resetPassword';
-};
-
-export type PostAuthResetPasswordErrors = {
-    /**
-     * Bad Request
-     */
-    400: HttpValidationProblemDetails;
-};
-
-export type PostAuthResetPasswordError = PostAuthResetPasswordErrors[keyof PostAuthResetPasswordErrors];
-
-export type PostAuthResetPasswordResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type PostAuthManage2FaData = {
-    body: TwoFactorRequest;
-    path?: never;
-    query?: never;
-    url: '/auth/manage/2fa';
-};
-
-export type PostAuthManage2FaErrors = {
-    /**
-     * Bad Request
-     */
-    400: HttpValidationProblemDetails;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type PostAuthManage2FaError = PostAuthManage2FaErrors[keyof PostAuthManage2FaErrors];
-
-export type PostAuthManage2FaResponses = {
-    /**
-     * OK
-     */
-    200: TwoFactorResponse;
-};
-
-export type PostAuthManage2FaResponse = PostAuthManage2FaResponses[keyof PostAuthManage2FaResponses];
-
-export type GetAuthManageInfoData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/auth/manage/info';
-};
-
-export type GetAuthManageInfoErrors = {
-    /**
-     * Bad Request
-     */
-    400: HttpValidationProblemDetails;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type GetAuthManageInfoError = GetAuthManageInfoErrors[keyof GetAuthManageInfoErrors];
-
-export type GetAuthManageInfoResponses = {
-    /**
-     * OK
-     */
-    200: InfoResponse;
-};
-
-export type GetAuthManageInfoResponse = GetAuthManageInfoResponses[keyof GetAuthManageInfoResponses];
-
-export type PostAuthManageInfoData = {
-    body: InfoRequest;
-    path?: never;
-    query?: never;
-    url: '/auth/manage/info';
-};
-
-export type PostAuthManageInfoErrors = {
-    /**
-     * Bad Request
-     */
-    400: HttpValidationProblemDetails;
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type PostAuthManageInfoError = PostAuthManageInfoErrors[keyof PostAuthManageInfoErrors];
-
-export type PostAuthManageInfoResponses = {
-    /**
-     * OK
-     */
-    200: InfoResponse;
-};
-
-export type PostAuthManageInfoResponse = PostAuthManageInfoResponses[keyof PostAuthManageInfoResponses];
 
 export type GetCardsData = {
     body?: never;

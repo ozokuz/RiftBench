@@ -202,7 +202,10 @@ function DeckRoute() {
     isLoading,
     isError,
   } = useQuery({
-    ...getDecksByDeckIdOptions({ path: { deckId } }),
+    ...getDecksByDeckIdOptions({
+      path: { deckId },
+      headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
+    }),
     enabled: !isAuthLoading,
   })
 

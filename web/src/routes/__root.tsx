@@ -2,11 +2,12 @@ import {
   HeadContent,
   Link,
   Scripts,
-  createRootRoute,
+  createRootRouteWithContext,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import { User } from "lucide-react"
+import type { QueryClient } from "@tanstack/react-query"
 
 import appCss from "../styles.css?url"
 import { AuthProvider, useAuth } from "@/lib/auth"
@@ -17,7 +18,7 @@ client.setConfig({
   baseUrl: import.meta.env.VITE_API_BASE,
 })
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       {

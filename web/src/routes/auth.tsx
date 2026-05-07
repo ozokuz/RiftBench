@@ -4,14 +4,18 @@ import { useServerFn } from "@tanstack/react-start"
 import z from "zod"
 import { zodValidator } from "@tanstack/zod-adapter"
 import { client } from "@/client/client.gen"
-import { useAuth } from "@/lib/auth"
+import { setClientAccessToken, useAuth } from "@/lib/auth"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect } from "react"
 
 const authSchema = z.object({
   auth_code: z.string(),
-  redirect_url: z.string(),
+  redirect_url: z.string().refine(isLocalRedirectPath),
 })
+
+function isLocalRedirectPath(value: string) {
+  return value.startsWith("/") && !value.startsWith("//")
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -47,12 +51,12 @@ function RouteComponent() {
       return
     }
 
-    client.setConfig({
-      baseUrl: import.meta.env.VITE_API_BASE,
-      headers: { Authorization: `Bearer ${data.accessToken}` },
-    })
-    refetch()
-    navigate({ to: redirect_url } as any)
+    void (async () => {
+      client.setConfig({ baseUrl: import.meta.env.VITE_API_BASE })
+      setClientAccessToken(data.accessToken)
+      await refetch()
+      await navigate({ to: redirect_url } as any)
+    })()
   }, [data, error, isError, isLoading, navigate, redirect_url, refetch])
 
   if (isLoading) {
