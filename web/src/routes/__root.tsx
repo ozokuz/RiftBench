@@ -6,12 +6,12 @@ import {
 } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
+import { User } from "lucide-react"
 
 import appCss from "../styles.css?url"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { client } from "@/client/client.gen"
 import { Button } from "@/components/ui/button"
-import { User } from "lucide-react"
 
 client.setConfig({
   baseUrl: import.meta.env.VITE_API_BASE,
