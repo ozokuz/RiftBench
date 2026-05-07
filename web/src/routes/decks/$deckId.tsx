@@ -62,6 +62,7 @@ export const Route = createFileRoute("/decks/$deckId")({
 
 const SAVE_DELAY_MS = 2500
 const QUICK_ADD_SEARCH_DELAY_MS = 300
+const CARD_SEARCH_DELAY_MS = 300
 const SEARCH_RESULT_PAGE_SIZE = 24
 const TYPE_ORDER: Array<CardType> = [
   "Legend",
@@ -751,6 +752,35 @@ type CardSearchFilters = {
   might: string
 }
 
+function snapshotCardSearchFilters(
+  filters: CardSearchFilters
+): CardSearchFilters {
+  return {
+    ...filters,
+    search: filters.search.trim(),
+    domains: [...filters.domains],
+    rarities: [...filters.rarities],
+    energy: filters.energy.trim(),
+    might: filters.might.trim(),
+  }
+}
+
+function toCardSearchQuery(filters: CardSearchFilters) {
+  return {
+    Search: filters.search || undefined,
+    Domains: filters.domains.length > 0 ? filters.domains : undefined,
+    DomainMode: filters.domains.length > 0 ? filters.domainMode : undefined,
+    Rarities: filters.rarities.length > 0 ? filters.rarities : undefined,
+    Types: filters.type ? [filters.type] : undefined,
+    Supertypes: filters.supertype ? [filters.supertype] : undefined,
+    Energy: filters.energy || undefined,
+    Might: filters.might || undefined,
+    Page: 1,
+    PageSize: SEARCH_RESULT_PAGE_SIZE,
+    SortBy: "name",
+  }
+}
+
 const DEFAULT_CARD_SEARCH_FILTERS: CardSearchFilters = {
   search: "",
   domains: [],
@@ -776,34 +806,32 @@ function CardSearchDialog({
   )
   const [submittedFilters, setSubmittedFilters] =
     useState<CardSearchFilters | null>(null)
+  const [hasSearched, setHasSearched] = useState(false)
   const searchQuery = useQuery({
     ...getCardsOptions({
-      query: submittedFilters
-        ? {
-            Search: submittedFilters.search || undefined,
-            Domains: submittedFilters.domains,
-            DomainMode: submittedFilters.domainMode,
-            Rarities: submittedFilters.rarities,
-            Types: submittedFilters.type ? [submittedFilters.type] : undefined,
-            Supertypes: submittedFilters.supertype
-              ? [submittedFilters.supertype]
-              : undefined,
-            Energy: submittedFilters.energy || undefined,
-            Might: submittedFilters.might || undefined,
-            Page: 1,
-            PageSize: SEARCH_RESULT_PAGE_SIZE,
-            SortBy: "name",
-          }
-        : undefined,
+      query: submittedFilters ? toCardSearchQuery(submittedFilters) : undefined,
     }),
     enabled: open && submittedFilters !== null,
   })
+
+  useEffect(() => {
+    if (!open || !hasSearched) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setSubmittedFilters(snapshotCardSearchFilters(filters))
+    }, CARD_SEARCH_DELAY_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [filters, hasSearched, open])
 
   function updateFilter<TFilter extends keyof CardSearchFilters>(
     key: TFilter,
     value: CardSearchFilters[TFilter]
   ) {
     setFilters((current) => ({ ...current, [key]: value }))
+    setHasSearched(true)
   }
 
   function toggleDomain(domain: CardDomain) {
@@ -826,7 +854,8 @@ function CardSearchDialog({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmittedFilters(filters)
+    setHasSearched(true)
+    setSubmittedFilters(snapshotCardSearchFilters(filters))
   }
 
   return (

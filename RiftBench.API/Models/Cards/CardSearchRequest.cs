@@ -12,12 +12,12 @@ public sealed class CardSearchRequest
 {
     public string? Search { get; init; }
 
-    public IReadOnlyCollection<CardDomain> Domains { get; init; } = [];
+    public List<CardDomain> Domains { get; init; } = [];
     public DomainFilterMode DomainMode { get; init; } = DomainFilterMode.Or;
 
-    public IReadOnlyCollection<CardRarity> Rarities { get; init; } = [];
-    public IReadOnlyCollection<CardType> Types { get; init; } = [];
-    public IReadOnlyCollection<CardSupertype> Supertypes { get; init; } = [];
+    public List<CardRarity> Rarities { get; init; } = [];
+    public List<CardType> Types { get; init; } = [];
+    public List<CardSupertype> Supertypes { get; init; } = [];
 
     /// <summary>
     /// Examples: "3", ">3", ">=3", "<2", "<=2", "2-5"
