@@ -7,7 +7,7 @@ const loginSchema = z.object({
   redirect: z.string().optional(),
 })
 
-export const Route = createFileRoute("/_unauthed/login")({
+export const Route = createFileRoute("/login")({
   component: RouteComponent,
   validateSearch: zodValidator(loginSchema),
 })

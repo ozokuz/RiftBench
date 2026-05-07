@@ -1,10 +1,17 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
+import {
+  HeadContent,
+  Link,
+  Scripts,
+  createRootRoute,
+} from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
 import appCss from "../styles.css?url"
-import { AuthProvider } from "@/lib/auth"
+import { AuthProvider, useAuth } from "@/lib/auth"
 import { client } from "@/client/client.gen"
+import { Button } from "@/components/ui/button"
+import { User } from "lucide-react"
 
 client.setConfig({
   baseUrl: import.meta.env.VITE_API_BASE,
@@ -40,15 +47,78 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 })
 
+function UserArea() {
+  const { user, isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return (
+      <div>
+        <Button>Login</Button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Button variant="outline">
+        <User className="mr-2 size-4" />
+        {user?.username}
+      </Button>
+    </div>
+  )
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <nav className="flex h-12 bg-[#333333] p-2 px-4 text-white">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link className="text-lg font-semibold" to="/">
+              RiftBench
+            </Link>
+            <Link className="text-sm" to="/browse">
+              Browse
+            </Link>
+            <Link className="text-sm" to="/decks">
+              My Decks
+            </Link>
+          </div>
+          <UserArea />
+        </div>
+      </nav>
+      <main className="mx-auto mt-4 flex grow flex-col">{children}</main>
+      <footer className="bg-[#333333] text-white">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between p-4">
+          <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground">
+            <span className="text-lg font-semibold">RiftBench</span>
+            <span className="text-sm">
+              &copy; Ozoku {new Date().getFullYear()}
+            </span>
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <p>
+              RiftBench was created under Riot Games' "Legal Jibber Jabber"
+              policy using assets
+              <br /> owned by Riot Games. Riot Games does not endorse or sponsor
+              this project.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="dark">
         <AuthProvider>
-          {children}
+          <Shell>{children}</Shell>
           <TanStackDevtools
             config={{
               position: "bottom-right",

@@ -9,15 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DecksDeckIdRouteImport } from './routes/decks/$deckId'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
-import { Route as UnauthedLoginRouteImport } from './routes/_unauthed/login'
 import { Route as AuthedDecksRouteImport } from './routes/_authed/decks'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
@@ -47,11 +52,6 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UnauthedLoginRoute = UnauthedLoginRouteImport.update({
-  id: '/_unauthed/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthedDecksRoute = AuthedDecksRouteImport.update({
   id: '/decks',
   path: '/decks',
@@ -62,8 +62,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
+  '/login': typeof LoginRoute
   '/decks': typeof AuthedDecksRoute
-  '/login': typeof UnauthedLoginRoute
   '/api/$': typeof ApiSplatRoute
   '/decks/$deckId': typeof DecksDeckIdRoute
 }
@@ -71,8 +71,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
+  '/login': typeof LoginRoute
   '/decks': typeof AuthedDecksRoute
-  '/login': typeof UnauthedLoginRoute
   '/api/$': typeof ApiSplatRoute
   '/decks/$deckId': typeof DecksDeckIdRoute
 }
@@ -82,8 +82,8 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
+  '/login': typeof LoginRoute
   '/_authed/decks': typeof AuthedDecksRoute
-  '/_unauthed/login': typeof UnauthedLoginRoute
   '/api/$': typeof ApiSplatRoute
   '/decks/$deckId': typeof DecksDeckIdRoute
 }
@@ -93,8 +93,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/browse'
-    | '/decks'
     | '/login'
+    | '/decks'
     | '/api/$'
     | '/decks/$deckId'
   fileRoutesByTo: FileRoutesByTo
@@ -102,8 +102,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/browse'
-    | '/decks'
     | '/login'
+    | '/decks'
     | '/api/$'
     | '/decks/$deckId'
   id:
@@ -112,8 +112,8 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/auth'
     | '/browse'
+    | '/login'
     | '/_authed/decks'
-    | '/_unauthed/login'
     | '/api/$'
     | '/decks/$deckId'
   fileRoutesById: FileRoutesById
@@ -123,13 +123,20 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
-  UnauthedLoginRoute: typeof UnauthedLoginRoute
+  LoginRoute: typeof LoginRoute
   ApiSplatRoute: typeof ApiSplatRoute
   DecksDeckIdRoute: typeof DecksDeckIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/browse': {
       id: '/browse'
       path: '/browse'
@@ -172,13 +179,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_unauthed/login': {
-      id: '/_unauthed/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof UnauthedLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authed/decks': {
       id: '/_authed/decks'
       path: '/decks'
@@ -205,7 +205,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
-  UnauthedLoginRoute: UnauthedLoginRoute,
+  LoginRoute: LoginRoute,
   ApiSplatRoute: ApiSplatRoute,
   DecksDeckIdRoute: DecksDeckIdRoute,
 }
