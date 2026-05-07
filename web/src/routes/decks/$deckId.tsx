@@ -18,11 +18,9 @@ import { createFileRoute } from "@tanstack/react-router"
 import {
   ArrowDownWideNarrow,
   Check,
-  Grip,
   MoreHorizontal,
   Search,
   Settings,
-  SlidersHorizontal,
   SquareStack,
 } from "lucide-react"
 import type { DragEndEvent } from "@dnd-kit/core"
@@ -547,7 +545,9 @@ function DeckToolbar({
     <section className="grid w-full gap-4 bg-[#242424] p-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1.5">
-          <span className="text-sm font-semibold text-[#d8d8d8]">Add Card</span>
+          <span className="block text-sm font-semibold text-[#d8d8d8]">
+            Add Card
+          </span>
           <Button
             variant="outline"
             className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
@@ -621,7 +621,7 @@ function DeckToolbar({
         </LabeledSelect>
       </div>
 
-      <div className="min-w-64 space-y-1.5">
+      <div className="min-w-64 space-y-1.5 self-end">
         <span className="text-sm font-semibold text-[#d8d8d8]">
           Filter Deck
         </span>
