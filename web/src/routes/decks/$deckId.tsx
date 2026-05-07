@@ -858,6 +858,11 @@ function CardSearchDialog({
     setSubmittedFilters(snapshotCardSearchFilters(filters))
   }
 
+  function handleAddSearchResult(card: CardSummaryDto) {
+    onAddCard(card)
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-3rem)] max-w-[1280px] overflow-y-auto border-[#2f2f2f] bg-[#222222] p-7 text-white">
@@ -990,7 +995,7 @@ function CardSearchDialog({
                   key={card.id}
                   type="button"
                   className="group overflow-hidden rounded-md bg-black text-left ring-1 ring-white/10 transition hover:ring-primary"
-                  onClick={() => onAddCard(card)}
+                  onClick={() => handleAddSearchResult(card)}
                 >
                   {card.imageUrl ? (
                     <img
