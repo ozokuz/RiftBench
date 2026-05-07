@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { buttonVariants } from "@/components/ui/button"
 import { getDecksBrowseOptions } from "@/client/@tanstack/react-query.gen"
 
 export const Route = createFileRoute("/browse")({
@@ -13,8 +12,7 @@ function BrowseRoute() {
   )
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 px-6 py-12">
-      <PageNav />
+    <div className="flex flex-col gap-8">
       <section className="space-y-3">
         <h1 className="text-3xl font-semibold tracking-normal">Browse</h1>
         <p className="text-sm text-muted-foreground">Public RiftBench decks.</p>
@@ -24,17 +22,7 @@ function BrowseRoute() {
       {isError ? <p className="text-sm text-destructive">Unable to load public decks.</p> : null}
 
       <DeckList decks={data?.items ?? []} />
-    </main>
-  )
-}
-
-function PageNav() {
-  return (
-    <nav className="flex flex-wrap items-center gap-3 text-sm">
-      <Link to="/" className={buttonVariants({ variant: "ghost" })}>Home</Link>
-      <Link to="/decks" className={buttonVariants({ variant: "ghost" })}>Decks</Link>
-      <Link to="/login" className={buttonVariants({ variant: "outline" })}>Login</Link>
-    </nav>
+    </div>
   )
 }
 

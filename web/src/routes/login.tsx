@@ -17,7 +17,7 @@ const api = import.meta.env.VITE_API_BASE
 function RouteComponent() {
   const { redirect } = Route.useSearch()
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-6 px-6 py-12">
+    <div className="flex flex-col gap-6">
       <div className="space-y-2">
         <Link
           to="/"
@@ -45,6 +45,6 @@ function RouteComponent() {
           Login with Discord
         </a>
       </div>
-    </main>
+    </div>
   )
 }

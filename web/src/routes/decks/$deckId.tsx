@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link, createFileRoute } from "@tanstack/react-router"
-import { buttonVariants } from "@/components/ui/button"
+import { createFileRoute } from "@tanstack/react-router"
 import { getDecksByDeckIdOptions } from "@/client/@tanstack/react-query.gen"
 import { useAuth } from "@/lib/auth"
 
@@ -19,13 +18,7 @@ function DeckRoute() {
   )
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 px-6 py-12">
-      <nav className="flex flex-wrap items-center gap-3 text-sm">
-        <Link to="/" className={buttonVariants({ variant: "ghost" })}>Home</Link>
-        <Link to="/browse" className={buttonVariants({ variant: "ghost" })}>Browse</Link>
-        <Link to="/decks" className={buttonVariants({ variant: "ghost" })}>Decks</Link>
-      </nav>
-
+    <div className="flex flex-col gap-8">
       {isAuthLoading || isLoading ? <p className="text-sm text-muted-foreground">Loading deck...</p> : null}
       {isError ? <p className="text-sm text-destructive">Unable to load this deck.</p> : null}
 
@@ -53,6 +46,6 @@ function DeckRoute() {
           </div>
         </>
       ) : null}
-    </main>
+    </div>
   )
 }

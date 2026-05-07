@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({ component: App })
 
 function App() {
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="space-y-5">
       <p className="text-sm font-medium text-muted-foreground">RiftBench</p>
       <h1 className="text-4xl font-semibold tracking-normal">
         Build, browse, and tune Riftbound decks.
