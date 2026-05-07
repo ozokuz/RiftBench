@@ -24,7 +24,7 @@ import {
   SquareStack,
 } from "lucide-react"
 import type { DragEndEvent } from "@dnd-kit/core"
-import type { ComponentProps } from "react"
+import type { ComponentProps, KeyboardEvent } from "react"
 import type {
   CardSummaryDto,
   CardType,
@@ -49,6 +49,7 @@ export const Route = createFileRoute("/decks/$deckId")({
 })
 
 const SAVE_DELAY_MS = 2500
+const QUICK_ADD_SEARCH_DELAY_MS = 300
 const TYPE_ORDER: Array<CardType> = [
   "Legend",
   "Rune",
@@ -201,6 +202,8 @@ function DeckEditor({
   const [sortMode, setSortMode] = useState<SortMode>("custom")
   const [filter, setFilter] = useState("")
   const [quickAdd, setQuickAdd] = useState("")
+  const [debouncedQuickAdd, setDebouncedQuickAdd] = useState("")
+  const [selectedQuickAddIndex, setSelectedQuickAddIndex] = useState(0)
   const [dirtyVersion, setDirtyVersion] = useState(0)
   const dirtyRef = useRef(false)
   const latestStateRef = useRef({ categories, cards })
@@ -219,10 +222,17 @@ function DeckEditor({
 
   const quickAddQuery = useQuery({
     ...getCardsOptions({
-      query: { Search: quickAdd, Page: 1, PageSize: 8, SortBy: "name" },
+      query: {
+        Search: debouncedQuickAdd,
+        Page: 1,
+        PageSize: 3,
+        SortBy: "name",
+      },
     }),
-    enabled: quickAdd.trim().length >= 2,
+    enabled: debouncedQuickAdd.trim().length >= 2,
   })
+
+  const quickAddResults = quickAddQuery.data?.items.slice(0, 3) ?? []
 
   useEffect(() => {
     const normalized = normalizeDeck(deck)
@@ -234,6 +244,24 @@ function DeckEditor({
   useEffect(() => {
     latestStateRef.current = { categories, cards }
   }, [categories, cards])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedQuickAdd(quickAdd.trim())
+    }, QUICK_ADD_SEARCH_DELAY_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [quickAdd])
+
+  useEffect(() => {
+    setSelectedQuickAddIndex(0)
+  }, [debouncedQuickAdd])
+
+  useEffect(() => {
+    if (selectedQuickAddIndex >= quickAddResults.length) {
+      setSelectedQuickAddIndex(Math.max(quickAddResults.length - 1, 0))
+    }
+  }, [quickAddResults.length, selectedQuickAddIndex])
 
   useEffect(() => {
     if (!isOwner || !dirtyRef.current || dirtyVersion === 0) {
@@ -337,13 +365,44 @@ function DeckEditor({
   }
 
   function handleQuickAdd() {
-    const card = quickAddQuery.data?.items[0]
-    if (!card) {
+    if (quickAddResults.length === 0) {
       return
     }
 
+    const card = quickAddResults[selectedQuickAddIndex]
+    addQuickAddCard(card)
+  }
+
+  function addQuickAddCard(card: CardSummaryDto) {
     addCard(card)
     setQuickAdd("")
+    setDebouncedQuickAdd("")
+    setSelectedQuickAddIndex(0)
+  }
+
+  function handleQuickAddKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault()
+      setSelectedQuickAddIndex((index) =>
+        quickAddResults.length === 0 ? 0 : (index + 1) % quickAddResults.length
+      )
+      return
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault()
+      setSelectedQuickAddIndex((index) =>
+        quickAddResults.length === 0
+          ? 0
+          : (index - 1 + quickAddResults.length) % quickAddResults.length
+      )
+      return
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault()
+      handleQuickAdd()
+    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -423,13 +482,15 @@ function DeckEditor({
           sortMode={sortMode}
           filter={filter}
           quickAdd={quickAdd}
-          quickAddResults={quickAddQuery.data?.items ?? []}
+          quickAddResults={quickAddResults}
+          selectedQuickAddIndex={selectedQuickAddIndex}
           onGroupModeChange={setGroupMode}
           onSortModeChange={setSortMode}
           onFilterChange={setFilter}
           onQuickAddChange={setQuickAdd}
-          onQuickAdd={handleQuickAdd}
-          onAddCard={addCard}
+          onQuickAddKeyDown={handleQuickAddKeyDown}
+          onQuickAddHighlight={setSelectedQuickAddIndex}
+          onQuickAddSelect={addQuickAddCard}
         />
       ) : null}
 
@@ -522,24 +583,28 @@ function DeckToolbar({
   filter,
   quickAdd,
   quickAddResults,
+  selectedQuickAddIndex,
   onGroupModeChange,
   onSortModeChange,
   onFilterChange,
   onQuickAddChange,
-  onQuickAdd,
-  onAddCard,
+  onQuickAddKeyDown,
+  onQuickAddHighlight,
+  onQuickAddSelect,
 }: {
   groupMode: GroupMode
   sortMode: SortMode
   filter: string
   quickAdd: string
   quickAddResults: Array<CardSummaryDto>
+  selectedQuickAddIndex: number
   onGroupModeChange: (mode: GroupMode) => void
   onSortModeChange: (mode: SortMode) => void
   onFilterChange: (filter: string) => void
   onQuickAddChange: (value: string) => void
-  onQuickAdd: () => void
-  onAddCard: (card: CardSummaryDto) => void
+  onQuickAddKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
+  onQuickAddHighlight: (index: number) => void
+  onQuickAddSelect: (card: CardSummaryDto) => void
 }) {
   return (
     <section className="grid w-full gap-4 bg-[#242424] p-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
@@ -563,24 +628,23 @@ function DeckToolbar({
           <Input
             value={quickAdd}
             onChange={(event) => onQuickAddChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                onQuickAdd()
-              }
-            }}
+            onKeyDown={onQuickAddKeyDown}
             placeholder="Death from Below"
             className="border-[#3a3a3a] bg-black text-white"
           />
           {quickAddResults.length > 0 ? (
             <div className="absolute z-20 mt-1 w-full rounded-lg border border-[#333] bg-[#111] p-1 shadow-xl">
-              {quickAddResults.map((card) => (
+              {quickAddResults.map((card, index) => (
                 <button
                   key={card.id}
                   type="button"
-                  className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#252525]"
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#252525]",
+                    index === selectedQuickAddIndex && "bg-[#252525]"
+                  )}
+                  onMouseEnter={() => onQuickAddHighlight(index)}
                   onClick={() => {
-                    onAddCard(card)
-                    onQuickAddChange("")
+                    onQuickAddSelect(card)
                   }}
                 >
                   <span>{card.name}</span>
