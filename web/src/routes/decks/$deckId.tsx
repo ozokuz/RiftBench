@@ -4,16 +4,11 @@ import {
   DragOverlay,
   PointerSensor,
   closestCenter,
+  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
@@ -461,7 +456,9 @@ function DeckEditor({
 
   function handleDragOver(event: DragOverEvent) {
     const overId = event.over ? String(event.over.id) : null
-    setHoveredCategoryId(getCategoryIdFromDropTarget(overId, cards))
+    setHoveredCategoryId(
+      overId?.startsWith("category:") ? overId.replace("category:", "") : null
+    )
   }
 
   function clearDragState() {
@@ -492,15 +489,9 @@ function DeckEditor({
         return current
       }
 
-      const targetCardId = overId.startsWith("card:")
-        ? overId.replace("card:", "")
-        : null
-      const targetCard = targetCardId
-        ? current.cards.find((card) => card.cardId === targetCardId)
-        : null
       const targetCategoryId = overId.startsWith("category:")
         ? overId.replace("category:", "")
-        : targetCard?.categoryId
+        : null
 
       if (!targetCategoryId) {
         return current
@@ -509,20 +500,12 @@ function DeckEditor({
       const remainingCards = current.cards.filter(
         (card) => card.cardId !== droppedCardId
       )
-      const targetIndex = targetCard
-        ? remainingCards.findIndex((card) => card.cardId === targetCard.cardId)
-        : remainingCards.filter((card) => card.categoryId === targetCategoryId)
-            .length
 
       const nextCard = { ...droppedCard, categoryId: targetCategoryId }
-      const insertIndex = targetCard
-        ? Math.max(targetIndex, 0)
-        : remainingCards.length
-      const nextCards = [
-        ...remainingCards.slice(0, insertIndex),
-        nextCard,
-        ...remainingCards.slice(insertIndex),
-      ].map((card, index) => ({ ...card, sortOrder: index }))
+      const nextCards = [...remainingCards, nextCard].map((card, index) => ({
+        ...card,
+        sortOrder: index,
+      }))
 
       return {
         categories: current.categories,
@@ -1152,7 +1135,11 @@ function CardGroup({
     id: droppableId,
     disabled: !canDrag,
   })
-  const itemIds = group.cards.map((card) => `card:${card.cardId}`)
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null)
+  const hoveredCardIndex = group.cards.findIndex(
+    (card) => card.cardId === hoveredCardId
+  )
+  const isBattlefieldGroup = group.name === "Battlefield"
 
   return (
     <section
@@ -1177,21 +1164,32 @@ function CardGroup({
         </Button>
       </div>
 
-      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-2">
-          {group.cards.map((deckCard) => (
-            <DeckCardTile
-              key={deckCard.cardId}
-              deckCard={deckCard}
-              canDrag={canDrag}
-              isDragSource={deckCard.cardId === draggedCardId}
-            />
-          ))}
-          {placeholderCard ? (
-            <DeckCardPlaceholder deckCard={placeholderCard} />
-          ) : null}
-        </div>
-      </SortableContext>
+      <div
+        className="flex flex-col"
+        onMouseLeave={() => setHoveredCardId(null)}
+      >
+        {group.cards.map((deckCard, index) => (
+          <DeckCardTile
+            key={deckCard.cardId}
+            deckCard={deckCard}
+            canDrag={canDrag}
+            isDragSource={deckCard.cardId === draggedCardId}
+            isHovered={deckCard.cardId === hoveredCardId}
+            stackOffset={getStackOffset({
+              hoveredCardIndex,
+              index,
+              isBattlefield: isBattlefieldGroup,
+            })}
+            onHover={() => setHoveredCardId(deckCard.cardId)}
+          />
+        ))}
+        {placeholderCard ? (
+          <DeckCardPlaceholder
+            deckCard={placeholderCard}
+            stackOffset={group.cards.length === 0 ? 0 : -36}
+          />
+        ) : null}
+      </div>
     </section>
   )
 }
@@ -1200,32 +1198,38 @@ function DeckCardTile({
   deckCard,
   canDrag,
   isDragSource,
+  isHovered,
+  stackOffset,
+  onHover,
 }: {
   deckCard: EditableDeckCard
   canDrag: boolean
   isDragSource: boolean
+  isHovered: boolean
+  stackOffset: number
+  onHover: () => void
 }) {
-  const sortable = useSortable({
+  const draggable = useDraggable({
     id: `card:${deckCard.cardId}`,
     disabled: !canDrag,
   })
   const style = {
-    transform: isDragSource
-      ? undefined
-      : CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
+    marginTop: stackOffset,
+    zIndex: isHovered ? 100 : undefined,
   }
 
   return (
     <article
-      ref={sortable.setNodeRef}
+      ref={draggable.setNodeRef}
       style={style}
-      {...sortable.attributes}
-      {...sortable.listeners}
+      {...draggable.attributes}
+      {...draggable.listeners}
+      onMouseEnter={onHover}
       className={cn(
-        "relative overflow-hidden rounded-md bg-black shadow-lg ring-1 shadow-black/40 ring-white/10",
+        "relative overflow-hidden rounded-md bg-black shadow-lg ring-1 shadow-black/40 ring-white/10 transition-[margin,opacity,box-shadow] duration-150",
         canDrag && "touch-none",
-        isDragSource && "opacity-20"
+        isDragSource && "opacity-20",
+        isHovered && "shadow-2xl ring-primary"
       )}
     >
       <DeckCardVisual deckCard={deckCard} />
@@ -1246,9 +1250,18 @@ function DeckCardDragPreview({ deckCard }: { deckCard: EditableDeckCard }) {
   )
 }
 
-function DeckCardPlaceholder({ deckCard }: { deckCard: EditableDeckCard }) {
+function DeckCardPlaceholder({
+  deckCard,
+  stackOffset = 0,
+}: {
+  deckCard: EditableDeckCard
+  stackOffset?: number
+}) {
   return (
-    <article className="pointer-events-none relative overflow-hidden rounded-md bg-black opacity-35 ring-2 ring-primary/60">
+    <article
+      className="pointer-events-none relative overflow-hidden rounded-md bg-black opacity-35 ring-2 ring-primary/60 transition-[margin] duration-150"
+      style={{ marginTop: stackOffset }}
+    >
       <DeckCardVisual deckCard={deckCard} />
     </article>
   )
@@ -1286,24 +1299,24 @@ function DeckCardVisual({ deckCard }: { deckCard: EditableDeckCard }) {
   )
 }
 
-function getCategoryIdFromDropTarget(
-  overId: string | null,
-  cards: Array<EditableDeckCard>
-) {
-  if (!overId) {
-    return null
+function getStackOffset({
+  hoveredCardIndex,
+  index,
+  isBattlefield,
+}: {
+  hoveredCardIndex: number
+  index: number
+  isBattlefield: boolean
+}) {
+  if (index === 0) {
+    return 0
   }
 
-  if (overId.startsWith("category:")) {
-    return overId.replace("category:", "")
+  if (hoveredCardIndex !== -1 && index > hoveredCardIndex) {
+    return 8
   }
 
-  if (overId.startsWith("card:")) {
-    const cardId = overId.replace("card:", "")
-    return cards.find((card) => card.cardId === cardId)?.categoryId ?? null
-  }
-
-  return null
+  return isBattlefield ? -86 : -214
 }
 
 function groupCards(
