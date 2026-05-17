@@ -14,7 +14,13 @@ import {
 import { useState } from "react"
 import { z } from "zod"
 // eslint-disable-next-line import/consistent-type-specifier-style
-import { type CreateDeckFolderRequest, type CreateDeckRequest, type DeckFolderNodeDto, type DeckListItemDto, DeckVisibility } from "@/client"
+import {
+  type CreateDeckFolderRequest,
+  type CreateDeckRequest,
+  type DeckFolderNodeDto,
+  type DeckListItemDto,
+  DeckVisibility,
+} from "@/client"
 import {
   deleteDecksByDeckIdMutation,
   deleteDecksFoldersByFolderIdMutation,
@@ -218,13 +224,15 @@ function DecksRoute() {
       return
     }
 
-    editFolder.mutateAsync({
-      path: { folderId: editingFolder.id },
-      body: parsed.data,
-    }).then(() => {
-      queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
-      setEditingFolder(null)
-    })
+    editFolder
+      .mutateAsync({
+        path: { folderId: editingFolder.id },
+        body: parsed.data,
+      })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
+        setEditingFolder(null)
+      })
   }
 
   function handleSubmitEditDeck() {
@@ -244,13 +252,15 @@ function DecksRoute() {
       return
     }
 
-    editDeck.mutateAsync({
-      path: { deckId: editingDeck.id },
-      body: parsed.data,
-    }).then(() => {
-      queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
-      setEditingDeck(null)
-    })
+    editDeck
+      .mutateAsync({
+        path: { deckId: editingDeck.id },
+        body: parsed.data,
+      })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
+        setEditingDeck(null)
+      })
   }
 
   function resetEditFolderState() {
@@ -289,7 +299,7 @@ function DecksRoute() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="mt-8 flex flex-col gap-8">
       <div className="flex items-start justify-between gap-4">
         <section className="space-y-3">
           <h1 className="text-3xl font-semibold tracking-normal">Decks</h1>
@@ -607,7 +617,7 @@ function DecksRoute() {
                     : getFolderMenuId(folder.id)
                 )
               }}
-              className="absolute right-2 top-2 z-10 rounded-md p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+              className="absolute top-2 right-2 z-10 rounded-md p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent"
               aria-label="Folder actions"
             >
               <MoreHorizontal className="size-4" />
@@ -618,7 +628,7 @@ function DecksRoute() {
                   className="fixed inset-0 z-30"
                   onClick={() => setOpenMenuId(null)}
                 />
-                <div className="absolute right-2 top-10 z-40 w-32 overflow-hidden rounded-md border bg-popover p-1 shadow-md">
+                <div className="absolute top-10 right-2 z-40 w-32 overflow-hidden rounded-md border bg-popover p-1 shadow-md">
                   <button
                     type="button"
                     onClick={() => handleEditFolder(folder)}
@@ -664,7 +674,7 @@ function DecksRoute() {
                     : getDeckMenuId(deck.id)
                 )
               }}
-              className="absolute right-2 top-2 z-10 rounded-md p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+              className="absolute top-2 right-2 z-10 rounded-md p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent"
               aria-label="Deck actions"
             >
               <MoreHorizontal className="size-4" />
@@ -675,7 +685,7 @@ function DecksRoute() {
                   className="fixed inset-0 z-30"
                   onClick={() => setOpenMenuId(null)}
                 />
-                <div className="absolute right-2 top-10 z-40 w-32 overflow-hidden rounded-md border bg-popover p-1 shadow-md">
+                <div className="absolute top-10 right-2 z-40 w-32 overflow-hidden rounded-md border bg-popover p-1 shadow-md">
                   <button
                     type="button"
                     onClick={() => handleEditDeck(deck)}
@@ -714,9 +724,7 @@ function DecksRoute() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit folder</DialogTitle>
-            <DialogDescription>
-              Rename or move this folder.
-            </DialogDescription>
+            <DialogDescription>Rename or move this folder.</DialogDescription>
           </DialogHeader>
           <form
             className="grid gap-4"
@@ -802,9 +810,7 @@ function DecksRoute() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit deck</DialogTitle>
-            <DialogDescription>
-              Rename or move this deck.
-            </DialogDescription>
+            <DialogDescription>Rename or move this deck.</DialogDescription>
           </DialogHeader>
           <form
             className="grid gap-4"
@@ -846,9 +852,7 @@ function DecksRoute() {
               </Select>
             </div>
             {editDeck.isError ? (
-              <p className="text-sm text-destructive">
-                Unable to update deck.
-              </p>
+              <p className="text-sm text-destructive">Unable to update deck.</p>
             ) : null}
             <DialogFooter>
               <Button
@@ -960,9 +964,7 @@ function DecksRoute() {
             </DialogDescription>
           </DialogHeader>
           {deleteDeck.isError ? (
-            <p className="text-sm text-destructive">
-              Unable to delete deck.
-            </p>
+            <p className="text-sm text-destructive">Unable to delete deck.</p>
           ) : null}
           <DialogFooter>
             <Button

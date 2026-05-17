@@ -1054,29 +1054,22 @@ function DeckHeader({
 
 function DeckStatsSection({ stats }: { stats: DeckStatsModel }) {
   return (
-    <section className="bg-[#222222] px-5 pb-5">
-      <div className="rounded-2xl border border-white/8 bg-[#262626] p-5 text-white shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-black/35 ring-1 ring-white/10">
-            <BarChart3 className="size-5 text-[#d8d8d8]" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-semibold tracking-normal">
-              Deck Stats
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Live deck composition based on current card quantities.
-            </p>
-          </div>
+    <section className="bg-[#222222] px-5 pt-5 pb-5">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-black/35 ring-1 ring-white/10">
+          <BarChart3 className="size-5 text-[#d8d8d8]" />
         </div>
+        <div>
+          <h2 className="text-3xl font-semibold tracking-normal">Deck Stats</h2>
+        </div>
+      </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
-          <EnergyCurveCard
-            averageEnergy={stats.averageEnergy}
-            curve={stats.energyCurve}
-          />
-          <DomainStatsGrid stats={stats.domainStats} />
-        </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
+        <EnergyCurveCard
+          averageEnergy={stats.averageEnergy}
+          curve={stats.energyCurve}
+        />
+        <DomainStatsGrid stats={stats.domainStats} />
       </div>
     </section>
   )
@@ -1090,7 +1083,7 @@ function EnergyCurveCard({
   curve: Array<EnergyCurvePoint>
 }) {
   return (
-    <section className="rounded-2xl border border-white/8 bg-[#2e2e2e] p-5">
+    <section>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-2xl font-semibold text-white">Energy Curve</h3>
@@ -1155,7 +1148,7 @@ function DomainStatsGrid({ stats }: { stats: Array<DomainStat> }) {
   )
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-[#2e2e2e] p-5">
+    <section>
       <h3 className="text-2xl font-semibold text-white">Power / Runes</h3>
       {visibleStats.length > 0 ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">

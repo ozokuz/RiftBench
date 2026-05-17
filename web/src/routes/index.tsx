@@ -5,8 +5,8 @@ export const Route = createFileRoute("/")({ component: App })
 
 function App() {
   return (
-    <div className="mt-4 space-y-5">
-      <p className="text-sm font-medium text-muted-foreground">RiftBench</p>
+    <div className="mt-8 space-y-5">
+      <p className="text-6xl font-medium text-muted-foreground">RiftBench</p>
       <h1 className="text-4xl font-semibold tracking-normal">
         Build, browse, and tune Riftbound decks.
       </h1>
@@ -15,10 +15,13 @@ function App() {
         deck pages from a single route map.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Link to="/browse" className={buttonVariants()}>
+        <Link to="/browse" className={buttonVariants({ size: "lg" })}>
           Browse decks
         </Link>
-        <Link to="/decks" className={buttonVariants({ variant: "outline" })}>
+        <Link
+          to="/decks"
+          className={buttonVariants({ variant: "outline", size: "lg" })}
+        >
           My decks
         </Link>
       </div>

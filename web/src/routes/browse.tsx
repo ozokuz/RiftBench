@@ -8,27 +8,44 @@ export const Route = createFileRoute("/browse")({
 
 function BrowseRoute() {
   const { data, isLoading, isError } = useQuery(
-    getDecksBrowseOptions({ query: { page: 1, pageSize: 50 } }),
+    getDecksBrowseOptions({ query: { page: 1, pageSize: 50 } })
   )
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="mt-8 flex flex-col gap-8">
       <section className="space-y-3">
         <h1 className="text-3xl font-semibold tracking-normal">Browse</h1>
         <p className="text-sm text-muted-foreground">Public RiftBench decks.</p>
       </section>
 
-      {isLoading ? <p className="text-sm text-muted-foreground">Loading decks...</p> : null}
-      {isError ? <p className="text-sm text-destructive">Unable to load public decks.</p> : null}
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading decks...</p>
+      ) : null}
+      {isError ? (
+        <p className="text-sm text-destructive">Unable to load public decks.</p>
+      ) : null}
 
       <DeckList decks={data?.items ?? []} />
     </div>
   )
 }
 
-function DeckList({ decks }: { decks: Array<{ id: string; name: string; description: string | null; cardCount: number; totalQuantity: number; username: string | null }> }) {
+function DeckList({
+  decks,
+}: {
+  decks: Array<{
+    id: string
+    name: string
+    description: string | null
+    cardCount: number
+    totalQuantity: number
+    username: string | null
+  }>
+}) {
   if (decks.length === 0) {
-    return <p className="text-sm text-muted-foreground">No public decks found.</p>
+    return (
+      <p className="text-sm text-muted-foreground">No public decks found.</p>
+    )
   }
 
   return (
@@ -42,10 +59,18 @@ function DeckList({ decks }: { decks: Array<{ id: string; name: string; descript
         >
           <div className="flex items-start justify-between gap-4">
             <h2 className="font-medium">{deck.name}</h2>
-            <span className="shrink-0 text-xs text-muted-foreground">{deck.totalQuantity} cards</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {deck.totalQuantity} cards
+            </span>
           </div>
-          {deck.description ? <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{deck.description}</p> : null}
-          <p className="mt-3 text-xs text-muted-foreground">{deck.username ?? "Unknown player"}</p>
+          {deck.description ? (
+            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+              {deck.description}
+            </p>
+          ) : null}
+          <p className="mt-3 text-xs text-muted-foreground">
+            {deck.username ?? "Unknown player"}
+          </p>
         </Link>
       ))}
     </div>
