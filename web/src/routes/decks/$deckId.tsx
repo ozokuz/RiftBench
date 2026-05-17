@@ -773,28 +773,24 @@ function DeckEditor({
         />
 
         {isOwner ? (
-          <>
-            <DeckToolbar
-              groupMode={groupMode}
-              sortMode={sortMode}
-              filter={filter}
-              quickAdd={quickAdd}
-              quickAddResults={quickAddResults}
-              selectedQuickAddIndex={selectedQuickAddIndex}
-              onGroupModeChange={setGroupMode}
-              onSortModeChange={setSortMode}
-              onFilterChange={setFilter}
-              onQuickAddChange={setQuickAdd}
-              onQuickAddKeyDown={handleQuickAddKeyDown}
-              onQuickAddHighlight={setSelectedQuickAddIndex}
-              onQuickAddSelect={addQuickAddCard}
-              onOpenCardSearch={() => setIsCardSearchOpen(true)}
-            />
-            <CreateCategoryDropZone
-              visible={isCreateCategoryTargetActive}
-              disabled={groupMode !== "category"}
-            />
-          </>
+          <DeckToolbar
+            groupMode={groupMode}
+            sortMode={sortMode}
+            filter={filter}
+            quickAdd={quickAdd}
+            quickAddResults={quickAddResults}
+            selectedQuickAddIndex={selectedQuickAddIndex}
+            showCreateCategoryDropZone={isCreateCategoryTargetActive}
+            createCategoryDropZoneDisabled={groupMode !== "category"}
+            onGroupModeChange={setGroupMode}
+            onSortModeChange={setSortMode}
+            onFilterChange={setFilter}
+            onQuickAddChange={setQuickAdd}
+            onQuickAddKeyDown={handleQuickAddKeyDown}
+            onQuickAddHighlight={setSelectedQuickAddIndex}
+            onQuickAddSelect={addQuickAddCard}
+            onOpenCardSearch={() => setIsCardSearchOpen(true)}
+          />
         ) : null}
 
         <div className="flex w-full flex-wrap items-start gap-6 bg-[#222222] p-5">
@@ -932,6 +928,8 @@ function DeckToolbar({
   quickAdd,
   quickAddResults,
   selectedQuickAddIndex,
+  showCreateCategoryDropZone,
+  createCategoryDropZoneDisabled,
   onGroupModeChange,
   onSortModeChange,
   onFilterChange,
@@ -947,6 +945,8 @@ function DeckToolbar({
   quickAdd: string
   quickAddResults: Array<CardSummaryDto>
   selectedQuickAddIndex: number
+  showCreateCategoryDropZone: boolean
+  createCategoryDropZoneDisabled: boolean
   onGroupModeChange: (mode: GroupMode) => void
   onSortModeChange: (mode: SortMode) => void
   onFilterChange: (filter: string) => void
@@ -957,149 +957,136 @@ function DeckToolbar({
   onOpenCardSearch: () => void
 }) {
   return (
-    <section className="grid w-full gap-4 bg-[#242424] p-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1.5">
-          <span className="block text-sm font-semibold text-[#d8d8d8]">
-            Add Card
-          </span>
-          <Button
-            variant="outline"
-            onClick={onOpenCardSearch}
-            className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
-          >
-            <Search className="size-4" />
-            Card Search
-          </Button>
-        </div>
-        <div className="relative min-w-64 space-y-1.5">
-          <span className="text-sm font-semibold text-[#d8d8d8]">
-            Quick Add
-          </span>
-          <Input
-            value={quickAdd}
-            onChange={(event) => onQuickAddChange(event.target.value)}
-            onKeyDown={onQuickAddKeyDown}
-            placeholder="Death from Below"
-            className="border-[#3a3a3a] bg-black text-white"
-          />
-          {quickAddResults.length > 0 ? (
-            <div className="absolute z-20 mt-1 w-full rounded-lg border border-[#333] bg-[#111] p-1 shadow-xl">
-              {quickAddResults.map((card, index) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#252525]",
-                    index === selectedQuickAddIndex && "bg-[#252525]"
-                  )}
-                  onMouseEnter={() => onQuickAddHighlight(index)}
-                  onClick={() => {
-                    onQuickAddSelect(card)
-                  }}
-                >
-                  <span>{card.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {card.type}
-                  </span>
-                </button>
-              ))}
+    <section className="w-full bg-[#242424] p-3">
+      {showCreateCategoryDropZone ? (
+        <CreateCategoryDropZone disabled={createCategoryDropZoneDisabled} />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <span className="block text-sm font-semibold text-[#d8d8d8]">
+                Add Card
+              </span>
+              <Button
+                variant="outline"
+                onClick={onOpenCardSearch}
+                className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
+              >
+                <Search className="size-4" />
+                Card Search
+              </Button>
             </div>
-          ) : null}
+            <div className="relative min-w-64 space-y-1.5">
+              <span className="text-sm font-semibold text-[#d8d8d8]">
+                Quick Add
+              </span>
+              <Input
+                value={quickAdd}
+                onChange={(event) => onQuickAddChange(event.target.value)}
+                onKeyDown={onQuickAddKeyDown}
+                placeholder="Death from Below"
+                className="border-[#3a3a3a] bg-black text-white"
+              />
+              {quickAddResults.length > 0 ? (
+                <div className="absolute z-20 mt-1 w-full rounded-lg border border-[#333] bg-[#111] p-1 shadow-xl">
+                  {quickAddResults.map((card, index) => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#252525]",
+                        index === selectedQuickAddIndex && "bg-[#252525]"
+                      )}
+                      onMouseEnter={() => onQuickAddHighlight(index)}
+                      onClick={() => {
+                        onQuickAddSelect(card)
+                      }}
+                    >
+                      <span>{card.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {card.type}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex items-end gap-3">
+            <SquareStack className="mb-2 size-5 text-[#d8d8d8]" />
+            <LabeledSelect
+              label="Group By"
+              value={groupMode}
+              onChange={(event) =>
+                onGroupModeChange(event.target.value as GroupMode)
+              }
+            >
+              <option value="category">Categories</option>
+              <option value="type">Type</option>
+            </LabeledSelect>
+          </div>
+
+          <div className="flex items-end gap-3">
+            <ArrowDownWideNarrow className="mb-2 size-5 text-[#d8d8d8]" />
+            <LabeledSelect
+              label="Sort By"
+              value={sortMode}
+              onChange={(event) =>
+                onSortModeChange(event.target.value as SortMode)
+              }
+            >
+              <option value="custom">Manual</option>
+              <option value="name">Name</option>
+              <option value="energy">Energy</option>
+            </LabeledSelect>
+          </div>
+
+          <div className="min-w-64 space-y-1.5 self-end">
+            <span className="text-sm font-semibold text-[#d8d8d8]">
+              Filter Deck
+            </span>
+            <Input
+              value={filter}
+              onChange={(event) => onFilterChange(event.target.value)}
+              placeholder="Death from Below"
+              className="border-[#3a3a3a] bg-black text-white"
+            />
+          </div>
         </div>
-      </div>
-
-      <div className="flex items-end gap-3">
-        <SquareStack className="mb-2 size-5 text-[#d8d8d8]" />
-        <LabeledSelect
-          label="Group By"
-          value={groupMode}
-          onChange={(event) =>
-            onGroupModeChange(event.target.value as GroupMode)
-          }
-        >
-          <option value="category">Categories</option>
-          <option value="type">Type</option>
-        </LabeledSelect>
-      </div>
-
-      <div className="flex items-end gap-3">
-        <ArrowDownWideNarrow className="mb-2 size-5 text-[#d8d8d8]" />
-        <LabeledSelect
-          label="Sort By"
-          value={sortMode}
-          onChange={(event) => onSortModeChange(event.target.value as SortMode)}
-        >
-          <option value="custom">Manual</option>
-          <option value="name">Name</option>
-          <option value="energy">Energy</option>
-        </LabeledSelect>
-      </div>
-
-      <div className="min-w-64 space-y-1.5 self-end">
-        <span className="text-sm font-semibold text-[#d8d8d8]">
-          Filter Deck
-        </span>
-        <Input
-          value={filter}
-          onChange={(event) => onFilterChange(event.target.value)}
-          placeholder="Death from Below"
-          className="border-[#3a3a3a] bg-black text-white"
-        />
-      </div>
+      )}
     </section>
   )
 }
 
 function CreateCategoryDropZone({
-  visible,
   disabled,
 }: {
-  visible: boolean
   disabled: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: "action:create-category",
-    disabled: !visible || disabled,
+    disabled,
   })
 
-  if (!visible || disabled) {
-    return null
-  }
-
   return (
-    <section className="bg-[#242424] px-3 pb-3">
+    <div className="flex min-h-[92px] items-center justify-center">
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-28 items-center justify-between rounded-2xl border border-dashed px-5 py-4 transition",
+          "flex min-h-16 w-full max-w-md items-center justify-center rounded-xl border border-dashed px-5 py-4 text-center transition",
           isOver
             ? "border-emerald-400 bg-emerald-500/10 text-emerald-100"
             : "border-[#4a4a4a] bg-[#171717] text-[#d8d8d8]"
         )}
       >
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#9b9b9b]">
-            New Category
-          </p>
-          <p className="mt-2 text-lg font-semibold">
-            {isOver
-              ? "Release to name and create a new category"
-              : "Drop a card here to create a new category"}
-          </p>
-        </div>
-        <div
-          className={cn(
-            "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]",
-            isOver
-              ? "border-emerald-300/70 bg-emerald-400/10 text-emerald-100"
-              : "border-[#4a4a4a] bg-black/40 text-[#adadad]"
-          )}
-        >
-          Drag Action
-        </div>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em]">
+          {isOver
+            ? "Release to name and create a new category"
+            : "Drop card here to create category"}
+        </p>
       </div>
-    </section>
+    </div>
   )
 }
 
