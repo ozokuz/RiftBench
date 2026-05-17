@@ -63,6 +63,7 @@ const SAVE_DELAY_MS = 2500
 const QUICK_ADD_SEARCH_DELAY_MS = 300
 const CARD_SEARCH_DELAY_MS = 300
 const SEARCH_RESULT_PAGE_SIZE = 24
+const CATEGORY_NAME_MAX_LENGTH = 128
 const TYPE_ORDER: Array<CardType> = [
   "Legend",
   "Rune",
@@ -194,6 +195,44 @@ function sortCategories(categories: Array<EditableCategory>) {
   )
 }
 
+function validateCategoryName(
+  name: string,
+  categories: Array<EditableCategory>,
+  currentCategoryId?: string
+) {
+  const trimmedName = name.trim()
+  if (trimmedName.length === 0) {
+    return "Category name is required."
+  }
+
+  if (trimmedName.length > CATEGORY_NAME_MAX_LENGTH) {
+    return `Category name must be ${CATEGORY_NAME_MAX_LENGTH} characters or fewer.`
+  }
+
+  const normalizedName = trimmedName.toLowerCase()
+  const duplicateExists = categories.some(
+    (category) =>
+      category.id !== currentCategoryId &&
+      category.name.trim().toLowerCase() === normalizedName
+  )
+  if (duplicateExists) {
+    return "Category names must be unique."
+  }
+
+  return null
+}
+
+function buildNewCategory(
+  name: string,
+  categories: Array<EditableCategory>
+): EditableCategory {
+  return {
+    id: crypto.randomUUID(),
+    name: name.trim(),
+    sortOrder: categories.length,
+  }
+}
+
 function DeckRoute() {
   const { deckId } = Route.useParams()
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -249,6 +288,24 @@ function DeckEditor({
     string | null
   >(null)
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null)
+  const [isCreateCategoryTargetActive, setIsCreateCategoryTargetActive] =
+    useState(false)
+  const [pendingCreateCategoryCardId, setPendingCreateCategoryCardId] =
+    useState<string | null>(null)
+  const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] =
+    useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [createCategoryError, setCreateCategoryError] = useState<string | null>(
+    null
+  )
+  const [renamingCategoryId, setRenamingCategoryId] = useState<string | null>(
+    null
+  )
+  const [renameDraft, setRenameDraft] = useState("")
+  const [renameError, setRenameError] = useState<string | null>(null)
+  const [openCategoryMenuId, setOpenCategoryMenuId] = useState<string | null>(
+    null
+  )
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(
     null
   )
@@ -287,6 +344,17 @@ function DeckEditor({
     setDeckState(normalized)
     latestStateRef.current = normalized
     dirtyRef.current = false
+    setDraggedCardId(null)
+    setHoveredCategoryId(null)
+    setIsCreateCategoryTargetActive(false)
+    setPendingCreateCategoryCardId(null)
+    setIsCreateCategoryDialogOpen(false)
+    setNewCategoryName("")
+    setCreateCategoryError(null)
+    setRenamingCategoryId(null)
+    setRenameDraft("")
+    setRenameError(null)
+    setOpenCategoryMenuId(null)
   }, [deck])
 
   useEffect(() => {
@@ -310,6 +378,24 @@ function DeckEditor({
       setSelectedQuickAddIndex(Math.max(quickAddResults.length - 1, 0))
     }
   }, [quickAddResults.length, selectedQuickAddIndex])
+
+  useEffect(() => {
+    if (groupMode === "category") {
+      return
+    }
+
+    setDraggedCardId(null)
+    setHoveredCategoryId(null)
+    setIsCreateCategoryTargetActive(false)
+    setOpenCategoryMenuId(null)
+    setRenamingCategoryId(null)
+    setRenameDraft("")
+    setRenameError(null)
+    setPendingCreateCategoryCardId(null)
+    setIsCreateCategoryDialogOpen(false)
+    setNewCategoryName("")
+    setCreateCategoryError(null)
+  }, [groupMode])
 
   useEffect(() => {
     if (!isOwner || !dirtyRef.current || dirtyVersion === 0) {
@@ -469,6 +555,98 @@ function DeckEditor({
     }
   }
 
+  function closeCreateCategoryDialog() {
+    setIsCreateCategoryDialogOpen(false)
+    setPendingCreateCategoryCardId(null)
+    setNewCategoryName("")
+    setCreateCategoryError(null)
+  }
+
+  function createCategory() {
+    if (!pendingCreateCategoryCardId) {
+      closeCreateCategoryDialog()
+      return
+    }
+
+    const validationError = validateCategoryName(newCategoryName, categories)
+    if (validationError) {
+      setCreateCategoryError(validationError)
+      return
+    }
+
+    updateDeckCards((current) => {
+      const droppedCard = current.cards.find(
+        (card) => card.cardId === pendingCreateCategoryCardId
+      )
+      if (!droppedCard) {
+        return current
+      }
+
+      const nextCategory = buildNewCategory(newCategoryName, current.categories)
+      const remainingCards = current.cards.filter(
+        (card) => card.cardId !== pendingCreateCategoryCardId
+      )
+      const nextCards = [
+        ...remainingCards,
+        {
+          ...droppedCard,
+          categoryId: nextCategory.id,
+        },
+      ].map((card, index) => ({
+        ...card,
+        sortOrder: index,
+      }))
+
+      return {
+        categories: [...current.categories, nextCategory],
+        cards: nextCards,
+      }
+    })
+
+    closeCreateCategoryDialog()
+  }
+
+  function startRenamingCategory(categoryId: string) {
+    const category = categories.find((item) => item.id === categoryId)
+    if (!category) {
+      return
+    }
+
+    setOpenCategoryMenuId(null)
+    setRenamingCategoryId(categoryId)
+    setRenameDraft(category.name)
+    setRenameError(null)
+  }
+
+  function cancelRenamingCategory() {
+    setRenamingCategoryId(null)
+    setRenameDraft("")
+    setRenameError(null)
+  }
+
+  function submitCategoryRename(categoryId: string) {
+    const validationError = validateCategoryName(
+      renameDraft,
+      categories,
+      categoryId
+    )
+    if (validationError) {
+      setRenameError(validationError)
+      return
+    }
+
+    updateDeckCards((current) => ({
+      categories: current.categories.map((category) =>
+        category.id === categoryId
+          ? { ...category, name: renameDraft.trim() }
+          : category
+      ),
+      cards: current.cards,
+    }))
+
+    cancelRenamingCategory()
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const activeId = String(event.active.id)
     if (!activeId.startsWith("card:")) {
@@ -477,6 +655,8 @@ function DeckEditor({
 
     const nextDraggedCardId = activeId.replace("card:", "")
     setDraggedCardId(nextDraggedCardId)
+    setIsCreateCategoryTargetActive(isOwner && groupMode === "category")
+    setOpenCategoryMenuId(null)
     setHoveredCategoryId(
       cards.find((card) => card.cardId === nextDraggedCardId)?.categoryId ??
         null
@@ -485,6 +665,11 @@ function DeckEditor({
 
   function handleDragOver(event: DragOverEvent) {
     const overId = event.over ? String(event.over.id) : null
+    if (overId === "action:create-category") {
+      setHoveredCategoryId(null)
+      return
+    }
+
     setHoveredCategoryId(
       overId?.startsWith("category:") ? overId.replace("category:", "") : null
     )
@@ -493,6 +678,7 @@ function DeckEditor({
   function clearDragState() {
     setDraggedCardId(null)
     setHoveredCategoryId(null)
+    setIsCreateCategoryTargetActive(false)
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -509,6 +695,14 @@ function DeckEditor({
     }
 
     const droppedCardId = activeId.replace("card:", "")
+    if (overId === "action:create-category") {
+      setPendingCreateCategoryCardId(droppedCardId)
+      setIsCreateCategoryDialogOpen(true)
+      setNewCategoryName("")
+      setCreateCategoryError(null)
+      clearDragState()
+      return
+    }
 
     updateDeckCards((current) => {
       const droppedCard = current.cards.find(
@@ -546,33 +740,6 @@ function DeckEditor({
 
   return (
     <div className="flex grow flex-col gap-4 bg-[#101010] pb-5 text-white">
-      <DeckHeader
-        deck={deck}
-        isOwner={isOwner}
-        totalQuantity={totalQuantity}
-        isSaving={saveMutation.isPending}
-        hasUnsavedChanges={dirtyRef.current}
-      />
-
-      {isOwner ? (
-        <DeckToolbar
-          groupMode={groupMode}
-          sortMode={sortMode}
-          filter={filter}
-          quickAdd={quickAdd}
-          quickAddResults={quickAddResults}
-          selectedQuickAddIndex={selectedQuickAddIndex}
-          onGroupModeChange={setGroupMode}
-          onSortModeChange={setSortMode}
-          onFilterChange={setFilter}
-          onQuickAddChange={setQuickAdd}
-          onQuickAddKeyDown={handleQuickAddKeyDown}
-          onQuickAddHighlight={setSelectedQuickAddIndex}
-          onQuickAddSelect={addQuickAddCard}
-          onOpenCardSearch={() => setIsCardSearchOpen(true)}
-        />
-      ) : null}
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -581,6 +748,39 @@ function DeckEditor({
         onDragEnd={handleDragEnd}
         onDragCancel={clearDragState}
       >
+        <DeckHeader
+          deck={deck}
+          isOwner={isOwner}
+          totalQuantity={totalQuantity}
+          isSaving={saveMutation.isPending}
+          hasUnsavedChanges={dirtyRef.current}
+        />
+
+        {isOwner ? (
+          <>
+            <DeckToolbar
+              groupMode={groupMode}
+              sortMode={sortMode}
+              filter={filter}
+              quickAdd={quickAdd}
+              quickAddResults={quickAddResults}
+              selectedQuickAddIndex={selectedQuickAddIndex}
+              onGroupModeChange={setGroupMode}
+              onSortModeChange={setSortMode}
+              onFilterChange={setFilter}
+              onQuickAddChange={setQuickAdd}
+              onQuickAddKeyDown={handleQuickAddKeyDown}
+              onQuickAddHighlight={setSelectedQuickAddIndex}
+              onQuickAddSelect={addQuickAddCard}
+              onOpenCardSearch={() => setIsCardSearchOpen(true)}
+            />
+            <CreateCategoryDropZone
+              visible={isCreateCategoryTargetActive}
+              disabled={groupMode !== "category"}
+            />
+          </>
+        ) : null}
+
         <div className="flex w-full flex-wrap items-start gap-6 bg-[#222222] p-5">
           {groupedCards.map((group) => (
             <CardGroup
@@ -591,6 +791,17 @@ function DeckEditor({
               placeholderCard={
                 hoveredCategoryId === group.id ? draggedCard : undefined
               }
+              isRenaming={renamingCategoryId === group.id}
+              renameValue={renamingCategoryId === group.id ? renameDraft : ""}
+              renameError={renamingCategoryId === group.id ? renameError : null}
+              isMenuOpen={openCategoryMenuId === group.id}
+              onRenameValueChange={setRenameDraft}
+              onRenameSubmit={submitCategoryRename}
+              onRenameCancel={cancelRenamingCategory}
+              onMenuOpenChange={(open) =>
+                setOpenCategoryMenuId(open ? group.id : null)
+              }
+              onStartRename={startRenamingCategory}
               onChangeQuantity={changeDeckCardQuantity}
               onOpenCardDetails={setSelectedDetailCardId}
             />
@@ -604,6 +815,23 @@ function DeckEditor({
         open={isCardSearchOpen}
         onOpenChange={setIsCardSearchOpen}
         onAddCard={addCard}
+      />
+      <CreateCategoryDialog
+        open={isCreateCategoryDialogOpen}
+        name={newCategoryName}
+        error={createCategoryError}
+        onNameChange={(value) => {
+          setNewCategoryName(value)
+          if (createCategoryError) {
+            setCreateCategoryError(null)
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeCreateCategoryDialog()
+          }
+        }}
+        onSubmit={createCategory}
       />
       <CardDetailsDialog
         cardId={selectedDetailCardId}
@@ -804,6 +1032,122 @@ function DeckToolbar({
         />
       </div>
     </section>
+  )
+}
+
+function CreateCategoryDropZone({
+  visible,
+  disabled,
+}: {
+  visible: boolean
+  disabled: boolean
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: "action:create-category",
+    disabled: !visible || disabled,
+  })
+
+  if (!visible || disabled) {
+    return null
+  }
+
+  return (
+    <section className="bg-[#242424] px-3 pb-3">
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex min-h-28 items-center justify-between rounded-2xl border border-dashed px-5 py-4 transition",
+          isOver
+            ? "border-emerald-400 bg-emerald-500/10 text-emerald-100"
+            : "border-[#4a4a4a] bg-[#171717] text-[#d8d8d8]"
+        )}
+      >
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#9b9b9b]">
+            New Category
+          </p>
+          <p className="mt-2 text-lg font-semibold">
+            {isOver
+              ? "Release to name and create a new category"
+              : "Drop a card here to create a new category"}
+          </p>
+        </div>
+        <div
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]",
+            isOver
+              ? "border-emerald-300/70 bg-emerald-400/10 text-emerald-100"
+              : "border-[#4a4a4a] bg-black/40 text-[#adadad]"
+          )}
+        >
+          Drag Action
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CreateCategoryDialog({
+  open,
+  name,
+  error,
+  onNameChange,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean
+  name: string
+  error: string | null
+  onNameChange: (value: string) => void
+  onOpenChange: (open: boolean) => void
+  onSubmit: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md border-[#2f2f2f] bg-[#222222] p-6 text-white">
+        <DialogTitle className="text-2xl font-semibold tracking-normal">
+          Create Category
+        </DialogTitle>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Choose a name for the new category before moving the dropped card
+            into it.
+          </p>
+          <Input
+            autoFocus
+            value={name}
+            maxLength={CATEGORY_NAME_MAX_LENGTH}
+            placeholder="New Category"
+            onChange={(event) => onNameChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault()
+                onSubmit()
+              }
+            }}
+            className="border-[#4a4a4a] bg-black text-white"
+          />
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-white text-black hover:bg-[#dddddd]"
+              onClick={onSubmit}
+            >
+              Create
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -1265,11 +1609,85 @@ type CardGroupModel = {
   cards: Array<EditableDeckCard>
 }
 
+function CategoryActionMenu({
+  open,
+  onOpenChange,
+  onRename,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onRename: () => void
+}) {
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (menuRef.current?.contains(event.target as Node)) {
+        return
+      }
+
+      onOpenChange(false)
+    }
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        onOpenChange(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [onOpenChange, open])
+
+  return (
+    <div ref={menuRef} className="relative">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        className="text-white hover:bg-white/10"
+        onClick={() => onOpenChange(!open)}
+      >
+        <MoreHorizontal className="size-4" />
+      </Button>
+      {open ? (
+        <div className="absolute top-full right-0 z-30 mt-1 min-w-32 rounded-lg border border-[#3a3a3a] bg-[#111111] p-1 shadow-2xl">
+          <button
+            type="button"
+            className="flex w-full rounded-md px-3 py-2 text-left text-sm text-white transition hover:bg-white/10"
+            onClick={onRename}
+          >
+            Rename
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function CardGroup({
   group,
   canDrag,
   draggedCardId,
   placeholderCard,
+  isRenaming,
+  renameValue,
+  renameError,
+  isMenuOpen,
+  onRenameValueChange,
+  onRenameSubmit,
+  onRenameCancel,
+  onMenuOpenChange,
+  onStartRename,
   onChangeQuantity,
   onOpenCardDetails,
 }: {
@@ -1277,6 +1695,15 @@ function CardGroup({
   canDrag: boolean
   draggedCardId: string | null
   placeholderCard?: EditableDeckCard
+  isRenaming: boolean
+  renameValue: string
+  renameError: string | null
+  isMenuOpen: boolean
+  onRenameValueChange: (value: string) => void
+  onRenameSubmit: (categoryId: string) => void
+  onRenameCancel: () => void
+  onMenuOpenChange: (open: boolean) => void
+  onStartRename: (categoryId: string) => void
   onChangeQuantity: (cardId: string, delta: number) => void
   onOpenCardDetails: (cardId: string) => void
 }) {
@@ -1301,17 +1728,46 @@ function CardGroup({
       )}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold text-[#dcdcdc]">{group.name}</h2>
+        <div className="min-w-0 flex-1">
+          {isRenaming ? (
+            <div className="space-y-1">
+              <Input
+                autoFocus
+                value={renameValue}
+                maxLength={CATEGORY_NAME_MAX_LENGTH}
+                onChange={(event) => onRenameValueChange(event.target.value)}
+                onBlur={() => onRenameSubmit(group.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault()
+                    onRenameSubmit(group.id)
+                  }
+
+                  if (event.key === "Escape") {
+                    event.preventDefault()
+                    onRenameCancel()
+                  }
+                }}
+                className="h-8 border-[#4a4a4a] bg-black px-2 text-sm text-white"
+              />
+              {renameError ? (
+                <p className="text-xs text-destructive">{renameError}</p>
+              ) : null}
+            </div>
+          ) : (
+            <h2 className="truncate text-sm font-semibold text-[#dcdcdc]">
+              {group.name}
+            </h2>
+          )}
           <p className="text-xs text-muted-foreground">Qty: {group.quantity}</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          className="text-white hover:bg-white/10"
-        >
-          <MoreHorizontal className="size-4" />
-        </Button>
+        {canDrag ? (
+          <CategoryActionMenu
+            open={isMenuOpen}
+            onOpenChange={onMenuOpenChange}
+            onRename={() => onStartRename(group.id)}
+          />
+        ) : null}
       </div>
 
       <div
@@ -1544,7 +2000,7 @@ function groupCards(
     ),
   }))
 
-  return groups.filter((group) => group.cards.length > 0).map(toGroupQuantity)
+  return groups.map(toGroupQuantity)
 }
 
 function sortCardsForDisplay(
