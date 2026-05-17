@@ -1,2 +1,5 @@
 [tools]
 dotnet = "latest"
+node = "24.11.1"
+pnpm = "10.20.0"
+just = "1.51.0"

@@ -5,7 +5,6 @@ prod-compose := "docker compose --env-file .env -f compose.yml"
 
 vite_api_base := env_var_or_default("VITE_API_BASE", "http://localhost:5036")
 web_base := env_var_or_default("WEB_BASE", "http://localhost:3000")
-dev_connection_string := env_var_or_default("DEV_CONNECTION_STRING", "Host=localhost;Port=5432;Database=riftbench;Username=riftbench;Password=riftbench")
 
 default:
     @just --list
@@ -49,13 +48,13 @@ openapi:
     ASPNETCORE_ENVIRONMENT="Development" dotnet build RiftBench.API/RiftBench.API.csproj
 
 dev-migrate:
-    ASPNETCORE_ENVIRONMENT="Development" ConnectionStrings__DefaultConnection='{{dev_connection_string}}' dotnet ef database update --project RiftBench.Data/RiftBench.Data.csproj --startup-project RiftBench.API/RiftBench.API.csproj --context AppDbContext
+    ASPNETCORE_ENVIRONMENT="Development" dotnet ef database update --project RiftBench.Data/RiftBench.Data.csproj --startup-project RiftBench.API/RiftBench.API.csproj --context AppDbContext
 
 dev-ingest:
-    ASPNETCORE_ENVIRONMENT="Development" ConnectionStrings__DefaultConnection='{{dev_connection_string}}' dotnet run --project RiftBench.Ingest/RiftBench.Ingest.csproj
+    cd RiftBench.Ingest && DOTNET_ENVIRONMENT="Development" dotnet run
 
 api-dev:
-    ASPNETCORE_ENVIRONMENT="Development" WebBase='{{web_base}}' ConnectionStrings__DefaultConnection='{{dev_connection_string}}' dotnet watch --project RiftBench.API/RiftBench.API.csproj
+    ASPNETCORE_ENVIRONMENT="Development" WebBase='{{web_base}}' dotnet watch --project RiftBench.API/RiftBench.API.csproj
 
 web-dev: openapi
     cd web && VITE_API_BASE='{{vite_api_base}}' pnpm dev
@@ -65,7 +64,7 @@ dev-bootstrap: dev-db dev-migrate dev-ingest
 # Add an EF Core migration:
 #   just migration-add CreateInitialSchema
 migration-add name:
-    ASPNETCORE_ENVIRONMENT="Development" ConnectionStrings__DefaultConnection='{{dev_connection_string}}' dotnet ef migrations add {{name}} --project RiftBench.Data/RiftBench.Data.csproj --startup-project RiftBench.API/RiftBench.API.csproj --context AppDbContext
+    ASPNETCORE_ENVIRONMENT="Development" dotnet ef migrations add {{name}} --project RiftBench.Data/RiftBench.Data.csproj --startup-project RiftBench.API/RiftBench.API.csproj --context AppDbContext
 
 # ---------- Local quality gates ----------
 

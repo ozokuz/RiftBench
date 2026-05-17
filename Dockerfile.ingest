@@ -6,7 +6,6 @@ FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS restore
 WORKDIR /src
 
 COPY RiftBench.slnx ./
-COPY RiftBench.Core/RiftBench.Core.csproj RiftBench.Core/
 COPY RiftBench.Data/RiftBench.Data.csproj RiftBench.Data/
 COPY RiftBench.Ingest/RiftBench.Ingest.csproj RiftBench.Ingest/
 COPY Riftcodex.Client/Riftcodex.Client.csproj Riftcodex.Client/
@@ -22,6 +21,6 @@ RUN dotnet publish RiftBench.Ingest/RiftBench.Ingest.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine AS ingest
 WORKDIR /app
-ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_ENVIRONMENT=Production
 COPY --from=build /app/ingest ./
 ENTRYPOINT ["dotnet", "RiftBench.Ingest.dll"]

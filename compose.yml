@@ -58,7 +58,7 @@ services:
         DOTNET_VERSION: ${DOTNET_VERSION:-10.0}
     restart: "no"
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      DOTNET_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     depends_on:
       db:
@@ -99,6 +99,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       WebBase: ${WEB_BASE}
+      Authentication__Discord__ClientId: ${Authentication__Discord__ClientId}
+      Authentication__Discord__ClientSecret: ${Authentication__Discord__ClientSecret}
+      Authentication__GitHub__ClientId: ${Authentication__GitHub__ClientId}
+      Authentication__GitHub__ClientSecret: ${Authentication__GitHub__ClientSecret}
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     depends_on:
       db:

@@ -7,7 +7,6 @@ WORKDIR /src
 
 COPY RiftBench.slnx ./
 COPY RiftBench.API/RiftBench.API.csproj RiftBench.API/
-COPY RiftBench.Core/RiftBench.Core.csproj RiftBench.Core/
 COPY RiftBench.Data/RiftBench.Data.csproj RiftBench.Data/
 
 RUN dotnet restore RiftBench.API/RiftBench.API.csproj
@@ -29,5 +28,5 @@ ENTRYPOINT ["dotnet", "RiftBench.API.dll"]
 
 FROM build AS migrate
 ENV PATH="${PATH}:/root/.dotnet/tools"
-RUN dotnet tool install --global dotnet-ef
+RUN dotnet tool install --global dotnet-ef --version 10.0.7
 ENTRYPOINT ["dotnet", "ef", "database", "update", "--project", "RiftBench.Data/RiftBench.Data.csproj", "--startup-project", "RiftBench.API/RiftBench.API.csproj", "--context", "AppDbContext"]

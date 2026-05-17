@@ -26,6 +26,14 @@ using RiftBench.Data.Entities;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var githubClientId = builder.Configuration["Authentication:GitHub:ClientId"];
+var githubClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"];
+var discordClientId = builder.Configuration["Authentication:Discord:ClientId"];
+var discordClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"];
+var hasGitHubAuth = !string.IsNullOrWhiteSpace(githubClientId) &&
+                    !string.IsNullOrWhiteSpace(githubClientSecret);
+var hasDiscordAuth = !string.IsNullOrWhiteSpace(discordClientId) &&
+                     !string.IsNullOrWhiteSpace(discordClientSecret);
 
 builder.Services.AddCors(options =>
 {
@@ -65,13 +73,16 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = IdentityConstants.BearerScheme;
 }).AddBearerToken(IdentityConstants.BearerScheme);
 
-builder.Services.AddOpenIddict()
+var openIddict = builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
         options.UseEntityFrameworkCore()
             .UseDbContext<AppDbContext>();
-    })
-    .AddClient(options =>
+    });
+
+if (hasGitHubAuth || hasDiscordAuth)
+{
+    openIddict.AddClient(options =>
     {
         options.AllowAuthorizationCodeFlow();
 
@@ -85,28 +96,40 @@ builder.Services.AddOpenIddict()
         }
         else
         {
+            options.AddEphemeralEncryptionKey()
+                .AddEphemeralSigningKey();
+
             options.UseAspNetCore()
                 .EnableRedirectionEndpointPassthrough();
         }
 
         options.UseSystemNetHttp();
 
-        options.UseWebProviders()
-            .AddGitHub(ghOptions =>
+        var providers = options.UseWebProviders();
+
+        if (hasGitHubAuth)
+        {
+            providers.AddGitHub(ghOptions =>
             {
-                ghOptions.SetClientId(builder.Configuration["Authentication:GitHub:ClientId"]!)
-                    .SetClientSecret(builder.Configuration["Authentication:GitHub:ClientSecret"]!)
+                ghOptions.SetClientId(githubClientId!)
+                    .SetClientSecret(githubClientSecret!)
                     .AddScopes("user:email")
                     .SetRedirectUri("auth/callback/github");
-            })
-            .AddDiscord(dcOptions =>
+            });
+        }
+
+        if (hasDiscordAuth)
+        {
+            providers.AddDiscord(dcOptions =>
             {
-                dcOptions.SetClientId(builder.Configuration["Authentication:Discord:ClientId"]!)
-                    .SetClientSecret(builder.Configuration["Authentication:Discord:ClientSecret"]!)
+                dcOptions.SetClientId(discordClientId!)
+                    .SetClientSecret(discordClientSecret!)
                     .AddScopes("email")
                     .SetRedirectUri("auth/callback/discord");
             });
+        }
     });
+}
 
 builder.Services.AddAuthorization();
 

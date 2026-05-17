@@ -49,8 +49,9 @@ builder.Services.AddScoped<RiftcodexClient>(sp =>
 builder.Services.AddTransient<CardSetIngestionService>();
 
 using var host = builder.Build();
+using var scope = host.Services.CreateScope();
 
-var ingestion = host.Services.GetRequiredService<CardSetIngestionService>();
+var ingestion = scope.ServiceProvider.GetRequiredService<CardSetIngestionService>();
 
 var refetch = args.Any(arg => string.Equals(arg, "--refetch", StringComparison.OrdinalIgnoreCase));
 var setCode = args.FirstOrDefault(arg => !arg.StartsWith("--", StringComparison.Ordinal));

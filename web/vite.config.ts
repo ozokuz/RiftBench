@@ -1,13 +1,13 @@
-import {defineConfig} from "vite"
-import {devtools} from "@tanstack/devtools-vite"
-import {tanstackStart} from "@tanstack/react-start/plugin/vite"
+import { defineConfig } from "vite"
+import { devtools } from "@tanstack/devtools-vite"
+import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 import viteReact from "@vitejs/plugin-react"
 import viteTsConfigPaths from "vite-tsconfig-paths"
 import tailwindcss from "@tailwindcss/vite"
-import {nitro} from "nitro/vite"
-import {heyApiPlugin} from "@hey-api/vite-plugin";
+import { nitro } from "nitro/vite"
+import { heyApiPlugin } from "@hey-api/vite-plugin"
 
-const config = defineConfig({
+const config = defineConfig(({ command }) => ({
     plugins: [
         devtools(),
         nitro(),
@@ -22,7 +22,7 @@ const config = defineConfig({
             config: {
                 input: {
                     path: '../RiftBench.API/RiftBench.API.json',
-                    watch: true
+                    watch: command === "serve",
                 },
                 output: 'src/client',
                 plugins: [
@@ -41,6 +41,6 @@ const config = defineConfig({
             }
         })
     ],
-})
+}))
 
 export default config
