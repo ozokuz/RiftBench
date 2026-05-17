@@ -32,6 +32,8 @@ import type {
   DeckCardDto,
   DeckCategoryDto,
   DeckDetailDto,
+  DeckFolderNodeDto,
+  DeckVisibility,
   DomainFilterMode,
 } from "@/client/types.gen"
 import {
@@ -39,6 +41,7 @@ import {
   CardRarity as CardRarityValues,
   CardSupertype as CardSupertypeValues,
   CardType as CardTypeValues,
+  DeckVisibility as DeckVisibilityValues,
   DomainFilterMode as DomainFilterModeValues,
 } from "@/client/types.gen"
 import { client as apiClient } from "@/client/client.gen"
@@ -46,12 +49,16 @@ import {
   getCardsOptions,
   getDecksByDeckIdOptions,
   getDecksByDeckIdQueryKey,
+  getDecksOptions,
   putDecksByDeckIdCardsMutation,
+  putDecksByDeckIdSettingsMutation,
 } from "@/client/@tanstack/react-query.gen"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
@@ -317,6 +324,7 @@ function DeckEditor({
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(
     null
   )
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [dirtyVersion, setDirtyVersion] = useState(0)
   const dirtyRef = useRef(false)
   const latestStateRef = useRef({ categories, cards })
@@ -325,6 +333,8 @@ function DeckEditor({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   )
 
+  const { user } = useAuth()
+
   const saveMutation = useMutation({
     ...putDecksByDeckIdCardsMutation(),
     onSuccess: (savedDeck) => {
@@ -332,6 +342,18 @@ function DeckEditor({
       queryClient.setQueryData(queryKey, savedDeck)
     },
   })
+
+  const { data: deckTree } = useQuery({
+    ...getDecksOptions({
+      headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
+    }),
+    enabled: isOwner && !!user,
+  })
+
+  const allFolderOptions = useMemo(() => {
+    if (!deckTree) return []
+    return flattenFolderNodes(deckTree.folders)
+  }, [deckTree])
 
   const quickAddQuery = useQuery({
     ...getCardsOptions({
@@ -770,6 +792,7 @@ function DeckEditor({
           totalQuantity={totalQuantity}
           isSaving={saveMutation.isPending}
           hasUnsavedChanges={dirtyRef.current}
+          onSettingsClick={() => setIsSettingsOpen(true)}
         />
 
         {isOwner ? (
@@ -853,6 +876,12 @@ function DeckEditor({
           }
         }}
       />
+      <DeckSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        deck={deck}
+        folderOptions={allFolderOptions}
+      />
     </div>
   )
 }
@@ -863,12 +892,14 @@ function DeckHeader({
   totalQuantity,
   isSaving,
   hasUnsavedChanges,
+  onSettingsClick,
 }: {
   deck: DeckDetailDto
   isOwner: boolean
   totalQuantity: number
   isSaving: boolean
   hasUnsavedChanges: boolean
+  onSettingsClick?: () => void
 }) {
   const isLegal = totalQuantity === 40
 
@@ -911,6 +942,7 @@ function DeckHeader({
           <Button
             variant="outline"
             className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
+            onClick={onSettingsClick}
           >
             <Settings className="size-4" />
             Settings
@@ -2036,4 +2068,161 @@ function toGroupQuantity(
       0
     ),
   }
+}
+
+function flattenFolderNodes(
+  folders: Array<DeckFolderNodeDto>,
+  depth = 0
+): Array<{ id: string; name: string }> {
+  return folders.flatMap((folder) => {
+    const prefix =
+      depth > 0 ? `${"\u00A0\u00A0".repeat(depth)}\u2014\u00A0` : ""
+    return [
+      { id: folder.id, name: `${prefix}${folder.name}` },
+      ...flattenFolderNodes(folder.children, depth + 1),
+    ]
+  })
+}
+
+function DeckSettingsDialog({
+  open,
+  onOpenChange,
+  deck,
+  folderOptions,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  deck: DeckDetailDto
+  folderOptions: Array<{ id: string; name: string }>
+}) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(deck.name)
+  const [description, setDescription] = useState(deck.description ?? "")
+  const [visibility, setVisibility] = useState(deck.visibility)
+  const [folderId, setFolderId] = useState(deck.folderId)
+
+  useEffect(() => {
+    if (!open) return
+    setName(deck.name)
+    setDescription(deck.description ?? "")
+    setVisibility(deck.visibility)
+    setFolderId(deck.folderId)
+  }, [open, deck])
+
+  const saveMutation = useMutation({
+    ...putDecksByDeckIdSettingsMutation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: getDecksByDeckIdQueryKey({ path: { deckId: deck.id } }),
+      })
+      onOpenChange(false)
+    },
+  })
+
+  function handleSave() {
+    const trimmedName = name.trim()
+    if (!trimmedName) return
+
+    saveMutation.mutate({
+      path: { deckId: deck.id },
+      body: {
+        name: trimmedName,
+        description: description.trim() || null,
+        folderId,
+        visibility,
+        isArchived: deck.isArchived,
+      },
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md border-[#2f2f2f] bg-[#222222] p-6 text-white">
+        <DialogTitle className="text-2xl font-semibold tracking-normal">
+          Deck Settings
+        </DialogTitle>
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="settings-name">Name</Label>
+            <Input
+              id="settings-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoFocus
+              className="border-[#4a4a4a] bg-black text-white"
+            />
+            {name.trim().length === 0 ? (
+              <p className="text-sm text-destructive">
+                Deck name is required
+              </p>
+            ) : null}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="settings-description">Description</Label>
+            <Textarea
+              id="settings-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="border-[#4a4a4a] bg-black text-white"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="settings-visibility">Visibility</Label>
+            <Select
+              id="settings-visibility"
+              value={visibility}
+              onChange={(event) =>
+                setVisibility(event.target.value as DeckVisibility)
+              }
+              className="border-[#4a4a4a] bg-black text-white"
+            >
+              <option value={DeckVisibilityValues.PRIVATE}>Private</option>
+              <option value={DeckVisibilityValues.UNLISTED}>Unlisted</option>
+              <option value={DeckVisibilityValues.PUBLIC}>Public</option>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="settings-folder">Folder</Label>
+            <Select
+              id="settings-folder"
+              value={folderId ?? ""}
+              onChange={(event) => setFolderId(event.target.value || null)}
+              className="border-[#4a4a4a] bg-black text-white"
+            >
+              <option value="">No folder</option>
+              {folderOptions.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {saveMutation.isError ? (
+            <p className="text-sm text-destructive">
+              Unable to save settings.
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
+              onClick={() => onOpenChange(false)}
+              disabled={saveMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-white text-black hover:bg-[#dddddd]"
+              onClick={handleSave}
+              disabled={name.trim().length === 0 || saveMutation.isPending}
+            >
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
