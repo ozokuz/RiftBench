@@ -164,6 +164,8 @@ prod-certs:
 prod-build:
     just prod-certs
     {{prod-compose}} build
+    {{prod-compose}} build migrate
+    {{prod-compose}} build ingest
 
 prod-up:
     just prod-certs
@@ -183,10 +185,12 @@ prod-logs service="":
 
 migrate:
     {{prod-compose}} up -d db
+    {{prod-compose}} build migrate
     {{prod-compose}} --profile jobs run --rm migrate
 
 ingest:
     {{prod-compose}} up -d db
+    {{prod-compose}} build ingest
     {{prod-compose}} --profile jobs run --rm ingest
 
 deploy:
