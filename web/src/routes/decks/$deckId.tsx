@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   ArrowDownWideNarrow,
+  BarChart3,
   Check,
   Minus,
   MoreHorizontal,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react"
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core"
 import type { ComponentProps, FormEvent, KeyboardEvent } from "react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import type {
   CardDomain,
   CardRarity,
@@ -55,6 +57,12 @@ import {
 } from "@/client/@tanstack/react-query.gen"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
@@ -116,6 +124,91 @@ type CardDetailDto = CardSummaryDto & {
 
 type GroupMode = "category" | "type"
 type SortMode = "name" | "energy" | "custom"
+type EnergyCurveBucket = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8+"
+type EnergyCurvePoint = {
+  bucket: EnergyCurveBucket
+  quantity: number
+}
+type DeckStatsDomain = Exclude<CardDomain, typeof CardDomainValues.COLORLESS>
+type DomainStat = {
+  domain: DeckStatsDomain
+  powerTotal: number
+  powerCards: number
+  powerPercent: number
+  runeTotal: number
+  runeCards: number
+  runePercent: number
+}
+type DeckStatsModel = {
+  averageEnergy: number
+  energyCurve: Array<EnergyCurvePoint>
+  domainStats: Array<DomainStat>
+}
+
+const ENERGY_CURVE_BUCKETS: Array<EnergyCurveBucket> = [
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8+",
+]
+const DOMAIN_STATS_ORDER: Array<DeckStatsDomain> = [
+  CardDomainValues.FURY,
+  CardDomainValues.CALM,
+  CardDomainValues.MIND,
+  CardDomainValues.CHAOS,
+  CardDomainValues.BODY,
+  CardDomainValues.ORDER,
+]
+const DOMAIN_ACCENT_CLASSES: Record<
+  DeckStatsDomain,
+  {
+    bg: string
+    text: string
+    badge: string
+  }
+> = {
+  Fury: {
+    bg: "bg-red-500",
+    text: "text-red-200",
+    badge: "bg-red-500/15 text-red-200",
+  },
+  Calm: {
+    bg: "bg-cyan-500",
+    text: "text-cyan-200",
+    badge: "bg-cyan-500/15 text-cyan-200",
+  },
+  Mind: {
+    bg: "bg-sky-500",
+    text: "text-sky-200",
+    badge: "bg-sky-500/15 text-sky-200",
+  },
+  Chaos: {
+    bg: "bg-violet-500",
+    text: "text-violet-200",
+    badge: "bg-violet-500/15 text-violet-200",
+  },
+  Body: {
+    bg: "bg-emerald-500",
+    text: "text-emerald-200",
+    badge: "bg-emerald-500/15 text-emerald-200",
+  },
+  Order: {
+    bg: "bg-amber-500",
+    text: "text-amber-100",
+    badge: "bg-amber-500/15 text-amber-100",
+  },
+}
+const ENERGY_CURVE_CHART_CONFIG = {
+  quantity: {
+    label: "Cards",
+    color: "#bdbdbd",
+  },
+} satisfies ChartConfig
 
 function normalizeDeck(deck: DeckDetailDto) {
   const categories = [...deck.categories]
@@ -258,7 +351,9 @@ function DeckRoute() {
   } = useQuery({
     ...getDecksByDeckIdOptions({
       path: { deckId },
-      headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
+      headers: user
+        ? { Authorization: `Bearer ${user.accessToken}` }
+        : undefined,
     }),
     enabled: !isAuthLoading,
   })
@@ -345,7 +440,9 @@ function DeckEditor({
 
   const { data: deckTree } = useQuery({
     ...getDecksOptions({
-      headers: user ? { Authorization: `Bearer ${user.accessToken}` } : undefined,
+      headers: user
+        ? { Authorization: `Bearer ${user.accessToken}` }
+        : undefined,
     }),
     enabled: isOwner && !!user,
   })
@@ -463,6 +560,7 @@ function DeckEditor({
     () => groupCards(categories, cards, groupMode, sortMode, filter),
     [cards, categories, filter, groupMode, sortMode]
   )
+  const deckStats = useMemo(() => buildDeckStats(cards), [cards])
   const draggedCard = draggedCardId
     ? cards.find((card) => card.cardId === draggedCardId)
     : undefined
@@ -842,6 +940,7 @@ function DeckEditor({
             />
           ))}
         </div>
+        <DeckStatsSection stats={deckStats} />
         <DragOverlay dropAnimation={null}>
           {draggedCard ? <DeckCardDragPreview deckCard={draggedCard} /> : null}
         </DragOverlay>
@@ -950,6 +1049,205 @@ function DeckHeader({
         ) : null}
       </div>
     </section>
+  )
+}
+
+function DeckStatsSection({ stats }: { stats: DeckStatsModel }) {
+  return (
+    <section className="bg-[#222222] px-5 pb-5">
+      <div className="rounded-2xl border border-white/8 bg-[#262626] p-5 text-white shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-black/35 ring-1 ring-white/10">
+            <BarChart3 className="size-5 text-[#d8d8d8]" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-semibold tracking-normal">
+              Deck Stats
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Live deck composition based on current card quantities.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
+          <EnergyCurveCard
+            averageEnergy={stats.averageEnergy}
+            curve={stats.energyCurve}
+          />
+          <DomainStatsGrid stats={stats.domainStats} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function EnergyCurveCard({
+  averageEnergy,
+  curve,
+}: {
+  averageEnergy: number
+  curve: Array<EnergyCurvePoint>
+}) {
+  return (
+    <section className="rounded-2xl border border-white/8 bg-[#2e2e2e] p-5">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="text-2xl font-semibold text-white">Energy Curve</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Average Energy Cost: {averageEnergy.toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      <ChartContainer
+        config={ENERGY_CURVE_CHART_CONFIG}
+        className="h-[320px] w-full rounded-xl bg-[#373737] p-3"
+      >
+        <BarChart
+          data={curve}
+          margin={{ top: 18, right: 12, left: -20, bottom: 0 }}
+        >
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+          <XAxis
+            dataKey="bucket"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={10}
+          />
+          <YAxis
+            allowDecimals={false}
+            tickLine={false}
+            axisLine={false}
+            width={30}
+          />
+          <ChartTooltip
+            cursor={{ fill: "rgba(255,255,255,0.06)" }}
+            content={
+              <ChartTooltipContent
+                labelFormatter={(value) => `Energy ${String(value)}`}
+                formatter={(value) => (
+                  <div className="flex min-w-24 items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Cards</span>
+                    <span className="font-mono font-medium text-foreground">
+                      {Number(value).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              />
+            }
+          />
+          <Bar
+            dataKey="quantity"
+            fill="var(--color-quantity)"
+            radius={[6, 6, 0, 0]}
+            barSize={36}
+          />
+        </BarChart>
+      </ChartContainer>
+    </section>
+  )
+}
+
+function DomainStatsGrid({ stats }: { stats: Array<DomainStat> }) {
+  const visibleStats = stats.filter(
+    (stat) => stat.powerTotal > 0 || stat.runeTotal > 0
+  )
+
+  return (
+    <section className="rounded-2xl border border-white/8 bg-[#2e2e2e] p-5">
+      <h3 className="text-2xl font-semibold text-white">Power / Runes</h3>
+      {visibleStats.length > 0 ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {visibleStats.map((domainStat) => (
+            <DomainStatsCard key={domainStat.domain} stat={domainStat} />
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No power or rune domains in this deck yet.
+        </p>
+      )}
+    </section>
+  )
+}
+
+function DomainStatsCard({ stat }: { stat: DomainStat }) {
+  const accent = DOMAIN_ACCENT_CLASSES[stat.domain]
+
+  return (
+    <article className="rounded-2xl border border-white/8 bg-[#373737] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)]">
+      <div className="flex items-center gap-3">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-black/20 ring-1 ring-white/8">
+          <img
+            src={`/icons/domain/${stat.domain}.png`}
+            alt={stat.domain}
+            title={stat.domain}
+            className="size-10 object-contain"
+          />
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-lg font-semibold text-white">{stat.domain}</h4>
+          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+            Domain Totals
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <StatProgressRow
+          label="Power"
+          accent={accent}
+          percent={stat.powerPercent}
+          summary={`${stat.powerTotal} power - ${stat.powerCards} cards`}
+        />
+        <StatProgressRow
+          label="Runes"
+          accent={accent}
+          percent={stat.runePercent}
+          summary={`${stat.runeTotal} runes - ${stat.runeCards} cards`}
+        />
+      </div>
+    </article>
+  )
+}
+
+function StatProgressRow({
+  label,
+  accent,
+  percent,
+  summary,
+}: {
+  label: string
+  accent: {
+    bg: string
+    text: string
+    badge: string
+  }
+  percent: number
+  summary: string
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-lg text-white">{label}</span>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
+            accent.badge
+          )}
+        >
+          {formatPercent(percent)}
+        </span>
+      </div>
+      <div className="h-3 overflow-hidden rounded-full bg-white/10">
+        <div
+          className={cn("h-full rounded-full transition-[width]", accent.bg)}
+          style={{ width: `${Math.max(percent, 0)}%` }}
+        />
+      </div>
+      <p className={cn("mt-2 text-sm", accent.text)}>{summary}</p>
+    </div>
   )
 }
 
@@ -1091,11 +1389,7 @@ function DeckToolbar({
   )
 }
 
-function CreateCategoryDropZone({
-  disabled,
-}: {
-  disabled: boolean
-}) {
+function CreateCategoryDropZone({ disabled }: { disabled: boolean }) {
   const { setNodeRef, isOver } = useDroppable({
     id: "action:create-category",
     disabled,
@@ -1112,7 +1406,7 @@ function CreateCategoryDropZone({
             : "border-[#4a4a4a] bg-[#171717] text-[#d8d8d8]"
         )}
       >
-        <p className="text-sm font-semibold uppercase tracking-[0.2em]">
+        <p className="text-sm font-semibold tracking-[0.2em] uppercase">
           {isOver
             ? "Release to name and create a new category"
             : "Drop card here to create category"}
@@ -2152,9 +2446,7 @@ function DeckSettingsDialog({
               className="border-[#4a4a4a] bg-black text-white"
             />
             {name.trim().length === 0 ? (
-              <p className="text-sm text-destructive">
-                Deck name is required
-              </p>
+              <p className="text-sm text-destructive">Deck name is required</p>
             ) : null}
           </div>
           <div className="grid gap-2">
@@ -2198,9 +2490,7 @@ function DeckSettingsDialog({
             </Select>
           </div>
           {saveMutation.isError ? (
-            <p className="text-sm text-destructive">
-              Unable to save settings.
-            </p>
+            <p className="text-sm text-destructive">Unable to save settings.</p>
           ) : null}
           <div className="flex justify-end gap-2">
             <Button
@@ -2225,4 +2515,144 @@ function DeckSettingsDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+function buildDeckStats(cards: Array<EditableDeckCard>): DeckStatsModel {
+  return {
+    averageEnergy: calculateAverageEnergy(cards),
+    energyCurve: buildEnergyCurve(cards),
+    domainStats: buildDomainStats(cards),
+  }
+}
+
+function buildEnergyCurve(
+  cards: Array<EditableDeckCard>
+): Array<EnergyCurvePoint> {
+  const counts = new Map<EnergyCurveBucket, number>(
+    ENERGY_CURVE_BUCKETS.map((bucket) => [bucket, 0])
+  )
+
+  for (const deckCard of cards) {
+    const energy = deckCard.card.energy
+    if (energy == null) {
+      continue
+    }
+
+    const bucket = getEnergyCurveBucket(energy)
+    counts.set(bucket, (counts.get(bucket) ?? 0) + deckCard.quantity)
+  }
+
+  return ENERGY_CURVE_BUCKETS.map((bucket) => ({
+    bucket,
+    quantity: counts.get(bucket) ?? 0,
+  }))
+}
+
+function calculateAverageEnergy(cards: Array<EditableDeckCard>) {
+  let weightedEnergyTotal = 0
+  let weightedCardCount = 0
+
+  for (const deckCard of cards) {
+    const energy = deckCard.card.energy
+    if (energy == null) {
+      continue
+    }
+
+    weightedEnergyTotal += energy * deckCard.quantity
+    weightedCardCount += deckCard.quantity
+  }
+
+  return weightedCardCount === 0 ? 0 : weightedEnergyTotal / weightedCardCount
+}
+
+function buildDomainStats(cards: Array<EditableDeckCard>): Array<DomainStat> {
+  const totals = new Map<
+    CardDomain,
+    {
+      powerTotal: number
+      powerCards: number
+      runeTotal: number
+      runeCards: number
+    }
+  >(
+    DOMAIN_STATS_ORDER.map((domain) => [
+      domain,
+      {
+        powerTotal: 0,
+        powerCards: 0,
+        runeTotal: 0,
+        runeCards: 0,
+      },
+    ])
+  )
+
+  for (const deckCard of cards) {
+    const power = deckCard.card.power ?? 0
+    const isRune = deckCard.card.type === CardTypeValues.RUNE
+
+    for (const domain of deckCard.card.domains) {
+      const stat = totals.get(domain)
+      if (!stat) {
+        continue
+      }
+
+      stat.powerTotal += power * deckCard.quantity
+      if (power > 0) {
+        stat.powerCards += deckCard.quantity
+      }
+
+      if (isRune) {
+        stat.runeTotal += deckCard.quantity
+        stat.runeCards += deckCard.quantity
+      }
+    }
+  }
+
+  const totalPower = DOMAIN_STATS_ORDER.reduce(
+    (sum, domain) => sum + (totals.get(domain)?.powerTotal ?? 0),
+    0
+  )
+  const totalRunes = DOMAIN_STATS_ORDER.reduce(
+    (sum, domain) => sum + (totals.get(domain)?.runeTotal ?? 0),
+    0
+  )
+
+  return DOMAIN_STATS_ORDER.map((domain) => {
+    const stat = totals.get(domain) ?? {
+      powerTotal: 0,
+      powerCards: 0,
+      runeTotal: 0,
+      runeCards: 0,
+    }
+
+    return {
+      domain,
+      powerTotal: stat.powerTotal,
+      powerCards: stat.powerCards,
+      powerPercent: toPercent(stat.powerTotal, totalPower),
+      runeTotal: stat.runeTotal,
+      runeCards: stat.runeCards,
+      runePercent: toPercent(stat.runeTotal, totalRunes),
+    }
+  })
+}
+
+function getEnergyCurveBucket(energy: number): EnergyCurveBucket {
+  if (energy >= 8) {
+    return "8+"
+  }
+
+  return String(Math.max(0, energy)) as Exclude<EnergyCurveBucket, "8+">
+}
+
+function toPercent(value: number, total: number) {
+  if (total <= 0) {
+    return 0
+  }
+
+  return (value / total) * 100
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value)}%`
 }
