@@ -233,6 +233,14 @@ function buildNewCategory(
   }
 }
 
+function pruneEmptyCategories(
+  categories: Array<EditableCategory>,
+  cards: Array<EditableDeckCard>
+) {
+  const usedCategoryIds = new Set(cards.map((card) => card.categoryId))
+  return categories.filter((category) => usedCategoryIds.has(category.id))
+}
+
 function DeckRoute() {
   const { deckId } = Route.useParams()
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -502,16 +510,20 @@ function DeckEditor({
   }
 
   function changeDeckCardQuantity(cardId: string, delta: number) {
-    updateDeckCards((current) => ({
-      categories: current.categories,
-      cards: current.cards
+    updateDeckCards((current) => {
+      const nextCards = current.cards
         .map((deckCard) =>
           deckCard.cardId === cardId
             ? { ...deckCard, quantity: deckCard.quantity + delta }
             : deckCard
         )
-        .filter((deckCard) => deckCard.quantity > 0),
-    }))
+        .filter((deckCard) => deckCard.quantity > 0)
+
+      return {
+        categories: pruneEmptyCategories(current.categories, nextCards),
+        cards: nextCards,
+      }
+    })
   }
 
   function handleQuickAdd() {
@@ -596,9 +608,13 @@ function DeckEditor({
         ...card,
         sortOrder: index,
       }))
+      const nextCategories = pruneEmptyCategories(
+        [...current.categories, nextCategory],
+        nextCards
+      )
 
       return {
-        categories: [...current.categories, nextCategory],
+        categories: nextCategories,
         cards: nextCards,
       }
     })
@@ -731,7 +747,7 @@ function DeckEditor({
       }))
 
       return {
-        categories: current.categories,
+        categories: pruneEmptyCategories(current.categories, nextCards),
         cards: nextCards,
       }
     })
