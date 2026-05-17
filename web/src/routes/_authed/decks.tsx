@@ -83,6 +83,13 @@ function DecksRoute() {
     null
   )
   const [editingDeck, setEditingDeck] = useState<DeckListItemDto | null>(null)
+  const [editFolderName, setEditFolderName] = useState("")
+  const [editFolderParentId, setEditFolderParentId] = useState<string | null>(
+    null
+  )
+  const [editFolderSortOrder, setEditFolderSortOrder] = useState(0)
+  const [editDeckName, setEditDeckName] = useState("")
+  const [editDeckFolderId, setEditDeckFolderId] = useState<string | null>(null)
   const [deletingFolder, setDeletingFolder] =
     useState<DeckFolderNodeDto | null>(null)
   const [deletingDeck, setDeletingDeck] = useState<DeckListItemDto | null>(null)
@@ -179,102 +186,86 @@ function DecksRoute() {
     },
   })
 
-  const editFolderForm = useForm({
-    defaultValues: { name: "", parentFolderId: null as string | null, sortOrder: 0 },
-    validators: {
-      onSubmit: ({ value }) => {
-        const result = editFolderFormSchema.safeParse(value)
-
-        if (result.success) {
-          return undefined
-        }
-
-        return {
-          fields: Object.fromEntries(
-            result.error.issues.map((issue) => [
-              issue.path.join("."),
-              issue.message,
-            ])
-          ),
-        }
-      },
-    },
-    onSubmit: async ({ value }) => {
-      if (!editingFolder) {
-        return
-      }
-
-      await editFolder.mutateAsync({
-        path: { folderId: editingFolder.id },
-        body: editFolderFormSchema.parse(value),
-      })
-      await queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
-      setEditingFolder(null)
-    },
-  })
-
-  const editDeckForm = useForm({
-    defaultValues: {
-      name: "",
-      description: null as string | null,
-      folderId: null as string | null,
-      visibility: "Private" as DeckVisibility,
-      isArchived: false,
-    },
-    validators: {
-      onSubmit: ({ value }) => {
-        const result = editDeckFormSchema.safeParse(value)
-
-        if (result.success) {
-          return undefined
-        }
-
-        return {
-          fields: Object.fromEntries(
-            result.error.issues.map((issue) => [
-              issue.path.join("."),
-              issue.message,
-            ])
-          ),
-        }
-      },
-    },
-    onSubmit: async ({ value }) => {
-      if (!editingDeck) {
-        return
-      }
-
-      await editDeck.mutateAsync({
-        path: { deckId: editingDeck.id },
-        body: editDeckFormSchema.parse(value),
-      })
-      await queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
-      setEditingDeck(null)
-    },
-  })
-
   function handleEditFolder(folder: DeckFolderNodeDto) {
     setOpenMenuId(null)
-    editFolderForm.reset({
-      name: folder.name,
-      parentFolderId: folder.parentFolderId,
-      sortOrder: folder.sortOrder,
-    })
+    setEditFolderName(folder.name)
+    setEditFolderParentId(folder.parentFolderId)
+    setEditFolderSortOrder(folder.sortOrder)
     editFolder.reset()
     setEditingFolder(folder)
   }
 
   function handleEditDeck(deck: DeckListItemDto) {
     setOpenMenuId(null)
-    editDeckForm.reset({
-      name: deck.name,
-      description: deck.description,
-      folderId: deck.folderId,
-      visibility: deck.visibility,
-      isArchived: deck.isArchived,
-    })
+    setEditDeckName(deck.name)
+    setEditDeckFolderId(deck.folderId)
     editDeck.reset()
     setEditingDeck(deck)
+  }
+
+  function handleSubmitEditFolder() {
+    if (!editingFolder || editFolder.isPending) {
+      return
+    }
+
+    const parsed = editFolderFormSchema.safeParse({
+      name: editFolderName,
+      parentFolderId: editFolderParentId,
+      sortOrder: editFolderSortOrder,
+    })
+
+    if (!parsed.success) {
+      return
+    }
+
+    editFolder.mutateAsync({
+      path: { folderId: editingFolder.id },
+      body: parsed.data,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
+      setEditingFolder(null)
+    })
+  }
+
+  function handleSubmitEditDeck() {
+    if (!editingDeck || editDeck.isPending) {
+      return
+    }
+
+    const parsed = editDeckFormSchema.safeParse({
+      name: editDeckName,
+      description: editingDeck.description,
+      folderId: editDeckFolderId,
+      visibility: editingDeck.visibility,
+      isArchived: editingDeck.isArchived,
+    })
+
+    if (!parsed.success) {
+      return
+    }
+
+    editDeck.mutateAsync({
+      path: { deckId: editingDeck.id },
+      body: parsed.data,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
+      setEditingDeck(null)
+    })
+  }
+
+  function resetEditFolderState() {
+    setEditingFolder(null)
+    setEditFolderName("")
+    setEditFolderParentId(null)
+    setEditFolderSortOrder(0)
+    editFolder.reset()
+  }
+
+  function resetEditDeckState() {
+    setEditingDeck(null)
+    setEditDeckName("")
+    setEditDeckFolderId(null)
+    editDeck.reset()
   }
 
   function handleDeleteFolder(folder: DeckFolderNodeDto) {
@@ -716,8 +707,7 @@ function DecksRoute() {
           }
 
           if (!open) {
-            setEditingFolder(null)
-            editFolder.reset()
+            resetEditFolderState()
           }
         }}
       >
@@ -733,66 +723,43 @@ function DecksRoute() {
             onSubmit={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              void editFolderForm.handleSubmit()
+              handleSubmitEditFolder()
             }}
           >
-            <editFolderForm.Field name="name">
-              {(field) => (
-                <div className="grid gap-2">
-                  <Label htmlFor={field.name}>Name</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) =>
-                      field.handleChange(event.target.value)
-                    }
-                    aria-invalid={field.state.meta.errors.length > 0}
-                    autoFocus
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </div>
-              )}
-            </editFolderForm.Field>
-            <editFolderForm.Field name="parentFolderId">
-              {(field) => {
-                const excludeIds = editingFolder
-                  ? getDescendantIds(editingFolder)
-                  : undefined
-                const folderOptions = flattenFolderSelectOptions(
+            <div className="grid gap-2">
+              <Label htmlFor="edit-folder-name">Name</Label>
+              <Input
+                id="edit-folder-name"
+                value={editFolderName}
+                onChange={(event) => setEditFolderName(event.target.value)}
+                autoFocus
+              />
+              {editFolderName.trim().length === 0 ? (
+                <p className="text-sm text-destructive">
+                  Folder name is required
+                </p>
+              ) : null}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-folder-parent">Parent folder</Label>
+              <Select
+                id="edit-folder-parent"
+                value={editFolderParentId ?? ""}
+                onChange={(event) =>
+                  setEditFolderParentId(event.target.value || null)
+                }
+              >
+                <option value="">None (root level)</option>
+                {flattenFolderSelectOptions(
                   allFolders,
-                  excludeIds
-                )
-
-                return (
-                  <div className="grid gap-2">
-                    <Label htmlFor={field.name}>Parent folder</Label>
-                    <Select
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value ?? ""}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value || null)
-                      }
-                      aria-invalid={field.state.meta.errors.length > 0}
-                    >
-                      <option value="">None (root level)</option>
-                      {folderOptions.map((folderOption) => (
-                        <option
-                          key={folderOption.id}
-                          value={folderOption.id}
-                        >
-                          {folderOption.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <FieldError errors={field.state.meta.errors} />
-                  </div>
-                )
-              }}
-            </editFolderForm.Field>
+                  editingFolder ? getDescendantIds(editingFolder) : undefined
+                ).map((folderOption) => (
+                  <option key={folderOption.id} value={folderOption.id}>
+                    {folderOption.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
             {editFolder.isError ? (
               <p className="text-sm text-destructive">
                 Unable to update folder.
@@ -802,30 +769,19 @@ function DecksRoute() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setEditingFolder(null)
-                  editFolder.reset()
-                }}
+                onClick={resetEditFolderState}
                 disabled={editFolder.isPending}
               >
                 Cancel
               </Button>
-              <editFolderForm.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              <Button
+                type="submit"
+                disabled={
+                  editFolderName.trim().length === 0 || editFolder.isPending
+                }
               >
-                {([canSubmit, isSubmitting]) => (
-                  <Button
-                    type="submit"
-                    disabled={
-                      !canSubmit ||
-                      isSubmitting ||
-                      editFolder.isPending
-                    }
-                  >
-                    {editFolder.isPending ? "Saving..." : "Save"}
-                  </Button>
-                )}
-              </editFolderForm.Subscribe>
+                {editFolder.isPending ? "Saving..." : "Save"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -839,8 +795,7 @@ function DecksRoute() {
           }
 
           if (!open) {
-            setEditingDeck(null)
-            editDeck.reset()
+            resetEditDeckState()
           }
         }}
       >
@@ -856,53 +811,40 @@ function DecksRoute() {
             onSubmit={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              void editDeckForm.handleSubmit()
+              handleSubmitEditDeck()
             }}
           >
-            <editDeckForm.Field name="name">
-              {(field) => (
-                <div className="grid gap-2">
-                  <Label htmlFor={field.name}>Name</Label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) =>
-                      field.handleChange(event.target.value)
-                    }
-                    aria-invalid={field.state.meta.errors.length > 0}
-                    autoFocus
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </div>
-              )}
-            </editDeckForm.Field>
-            <editDeckForm.Field name="folderId">
-              {(field) => (
-                <div className="grid gap-2">
-                  <Label htmlFor={field.name}>Folder</Label>
-                  <Select
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value ?? ""}
-                    onBlur={field.handleBlur}
-                    onChange={(event) =>
-                      field.handleChange(event.target.value || null)
-                    }
-                    aria-invalid={field.state.meta.errors.length > 0}
-                  >
-                    <option value="">No folder</option>
-                    {allFolderOptions.map((folder) => (
-                      <option key={folder.id} value={folder.id}>
-                        {folder.name}
-                      </option>
-                    ))}
-                  </Select>
-                  <FieldError errors={field.state.meta.errors} />
-                </div>
-              )}
-            </editDeckForm.Field>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-deck-name">Name</Label>
+              <Input
+                id="edit-deck-name"
+                value={editDeckName}
+                onChange={(event) => setEditDeckName(event.target.value)}
+                autoFocus
+              />
+              {editDeckName.trim().length === 0 ? (
+                <p className="text-sm text-destructive">
+                  Deck name is required
+                </p>
+              ) : null}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-deck-folder">Folder</Label>
+              <Select
+                id="edit-deck-folder"
+                value={editDeckFolderId ?? ""}
+                onChange={(event) =>
+                  setEditDeckFolderId(event.target.value || null)
+                }
+              >
+                <option value="">No folder</option>
+                {allFolderOptions.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
             {editDeck.isError ? (
               <p className="text-sm text-destructive">
                 Unable to update deck.
@@ -912,30 +854,19 @@ function DecksRoute() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setEditingDeck(null)
-                  editDeck.reset()
-                }}
+                onClick={resetEditDeckState}
                 disabled={editDeck.isPending}
               >
                 Cancel
               </Button>
-              <editDeckForm.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              <Button
+                type="submit"
+                disabled={
+                  editDeckName.trim().length === 0 || editDeck.isPending
+                }
               >
-                {([canSubmit, isSubmitting]) => (
-                  <Button
-                    type="submit"
-                    disabled={
-                      !canSubmit ||
-                      isSubmitting ||
-                      editDeck.isPending
-                    }
-                  >
-                    {editDeck.isPending ? "Saving..." : "Save"}
-                  </Button>
-                )}
-              </editDeckForm.Subscribe>
+                {editDeck.isPending ? "Saving..." : "Save"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
