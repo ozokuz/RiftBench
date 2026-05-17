@@ -1,9 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "@tanstack/react-form"
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ChevronLeft, Folder, FolderPlus, Library, Plus } from "lucide-react"
+import {
+  ChevronLeft,
+  Folder,
+  FolderPlus,
+  Library,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react"
 import { useState } from "react"
 import { z } from "zod"
+// eslint-disable-next-line import/consistent-type-specifier-style
+import { type CreateDeckFolderRequest, type CreateDeckRequest, type DeckFolderNodeDto, type DeckListItemDto, DeckVisibility } from "@/client"
+import {
+  deleteDecksByDeckIdMutation,
+  deleteDecksFoldersByFolderIdMutation,
+  getDecksOptions,
+  getDecksQueryKey,
+  postDecksFoldersMutation,
+  postDecksMutation,
+  putDecksByDeckIdSettingsMutation,
+  putDecksFoldersByFolderIdMutation,
+} from "@/client/@tanstack/react-query.gen"
+import {
+  zCreateDeckFolderRequest,
+  zCreateDeckRequest,
+  zUpdateDeckFolderRequest,
+  zUpdateDeckSettingsRequest,
+} from "@/client/zod.gen"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,19 +44,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { DeckVisibility } from "@/client"
-import {
-  getDecksOptions,
-  getDecksQueryKey,
-  postDecksFoldersMutation,
-  postDecksMutation,
-} from "@/client/@tanstack/react-query.gen"
-import { zCreateDeckFolderRequest, zCreateDeckRequest } from "@/client/zod.gen"
-import type {
-  CreateDeckFolderRequest,
-  CreateDeckRequest,
-  DeckFolderNodeDto,
-} from "@/client"
 
 export const Route = createFileRoute("/_authed/decks")({
   component: DecksRoute,
@@ -50,15 +64,35 @@ const createFolderFormSchema = zCreateDeckFolderRequest.extend({
   name: z.string().trim().min(1, "Folder name is required"),
 })
 
+const editFolderFormSchema = zUpdateDeckFolderRequest.extend({
+  name: z.string().trim().min(1, "Folder name is required"),
+})
+
+const editDeckFormSchema = zUpdateDeckSettingsRequest.extend({
+  name: z.string().trim().min(1, "Deck name is required"),
+})
+
 function DecksRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false)
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [editingFolder, setEditingFolder] = useState<DeckFolderNodeDto | null>(
+    null
+  )
+  const [editingDeck, setEditingDeck] = useState<DeckListItemDto | null>(null)
+  const [deletingFolder, setDeletingFolder] =
+    useState<DeckFolderNodeDto | null>(null)
+  const [deletingDeck, setDeletingDeck] = useState<DeckListItemDto | null>(null)
   const { data, isLoading, isError } = useQuery(getDecksOptions())
   const createDeck = useMutation(postDecksMutation())
   const createFolder = useMutation(postDecksFoldersMutation())
+  const editFolder = useMutation(putDecksFoldersByFolderIdMutation())
+  const editDeck = useMutation(putDecksByDeckIdSettingsMutation())
+  const deleteFolder = useMutation(deleteDecksFoldersByFolderIdMutation())
+  const deleteDeck = useMutation(deleteDecksByDeckIdMutation())
   const allFolders = data?.folders ?? []
   const allFolderOptions = flattenFolders(allFolders)
   const currentFolder = currentFolderId
@@ -144,6 +178,124 @@ function DecksRoute() {
       setIsCreateFolderOpen(false)
     },
   })
+
+  const editFolderForm = useForm({
+    defaultValues: { name: "", parentFolderId: null as string | null, sortOrder: 0 },
+    validators: {
+      onSubmit: ({ value }) => {
+        const result = editFolderFormSchema.safeParse(value)
+
+        if (result.success) {
+          return undefined
+        }
+
+        return {
+          fields: Object.fromEntries(
+            result.error.issues.map((issue) => [
+              issue.path.join("."),
+              issue.message,
+            ])
+          ),
+        }
+      },
+    },
+    onSubmit: async ({ value }) => {
+      if (!editingFolder) {
+        return
+      }
+
+      await editFolder.mutateAsync({
+        path: { folderId: editingFolder.id },
+        body: editFolderFormSchema.parse(value),
+      })
+      await queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
+      setEditingFolder(null)
+    },
+  })
+
+  const editDeckForm = useForm({
+    defaultValues: {
+      name: "",
+      description: null as string | null,
+      folderId: null as string | null,
+      visibility: "Private" as DeckVisibility,
+      isArchived: false,
+    },
+    validators: {
+      onSubmit: ({ value }) => {
+        const result = editDeckFormSchema.safeParse(value)
+
+        if (result.success) {
+          return undefined
+        }
+
+        return {
+          fields: Object.fromEntries(
+            result.error.issues.map((issue) => [
+              issue.path.join("."),
+              issue.message,
+            ])
+          ),
+        }
+      },
+    },
+    onSubmit: async ({ value }) => {
+      if (!editingDeck) {
+        return
+      }
+
+      await editDeck.mutateAsync({
+        path: { deckId: editingDeck.id },
+        body: editDeckFormSchema.parse(value),
+      })
+      await queryClient.invalidateQueries({ queryKey: getDecksQueryKey() })
+      setEditingDeck(null)
+    },
+  })
+
+  function handleEditFolder(folder: DeckFolderNodeDto) {
+    setOpenMenuId(null)
+    editFolderForm.reset({
+      name: folder.name,
+      parentFolderId: folder.parentFolderId,
+      sortOrder: folder.sortOrder,
+    })
+    editFolder.reset()
+    setEditingFolder(folder)
+  }
+
+  function handleEditDeck(deck: DeckListItemDto) {
+    setOpenMenuId(null)
+    editDeckForm.reset({
+      name: deck.name,
+      description: deck.description,
+      folderId: deck.folderId,
+      visibility: deck.visibility,
+      isArchived: deck.isArchived,
+    })
+    editDeck.reset()
+    setEditingDeck(deck)
+  }
+
+  function handleDeleteFolder(folder: DeckFolderNodeDto) {
+    setOpenMenuId(null)
+    deleteFolder.reset()
+    setDeletingFolder(folder)
+  }
+
+  function handleDeleteDeck(deck: DeckListItemDto) {
+    setOpenMenuId(null)
+    deleteDeck.reset()
+    setDeletingDeck(deck)
+  }
+
+  function getFolderMenuId(folderId: string) {
+    return `folder-${folderId}`
+  }
+
+  function getDeckMenuId(deckId: string) {
+    return `deck-${deckId}`
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -440,34 +592,481 @@ function DecksRoute() {
           </button>
         ) : null}
         {folders.map((folder) => (
-          <button
-            type="button"
-            key={folder.id}
-            onClick={() => setCurrentFolderId(folder.id)}
-            className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-4 text-center text-card-foreground transition-colors hover:bg-accent"
-          >
-            <Folder
-              className="mb-4 size-14 text-muted-foreground"
-              strokeWidth={1.6}
-            />
-            <h2 className="line-clamp-2 text-sm font-medium">{folder.name}</h2>
-          </button>
+          <div key={folder.id} className="group relative">
+            <button
+              type="button"
+              onClick={() => setCurrentFolderId(folder.id)}
+              className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border bg-card p-4 text-center text-card-foreground transition-colors hover:bg-accent"
+            >
+              <Folder
+                className="mb-4 size-14 text-muted-foreground"
+                strokeWidth={1.6}
+              />
+              <h2 className="line-clamp-2 text-sm font-medium">
+                {folder.name}
+              </h2>
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                setOpenMenuId(
+                  openMenuId === getFolderMenuId(folder.id)
+                    ? null
+                    : getFolderMenuId(folder.id)
+                )
+              }}
+              className="absolute right-2 top-2 z-10 rounded-md p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+              aria-label="Folder actions"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+            {openMenuId === getFolderMenuId(folder.id) ? (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setOpenMenuId(null)}
+                />
+                <div className="absolute right-2 top-10 z-40 w-32 overflow-hidden rounded-md border bg-popover p-1 shadow-md">
+                  <button
+                    type="button"
+                    onClick={() => handleEditFolder(folder)}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                  >
+                    <Pencil className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFolder(folder)}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         ))}
         {decks.map((deck) => (
-          <Link
-            key={deck.id}
-            to="/decks/$deckId"
-            params={{ deckId: deck.id }}
-            className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-card p-4 text-center text-card-foreground transition-colors hover:bg-accent"
-          >
-            <Library
-              className="mb-4 size-14 text-muted-foreground"
-              strokeWidth={1.6}
-            />
-            <h2 className="line-clamp-2 text-sm font-medium">{deck.name}</h2>
-          </Link>
+          <div key={deck.id} className="group relative">
+            <Link
+              to="/decks/$deckId"
+              params={{ deckId: deck.id }}
+              className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border bg-card p-4 text-center text-card-foreground transition-colors hover:bg-accent"
+            >
+              <Library
+                className="mb-4 size-14 text-muted-foreground"
+                strokeWidth={1.6}
+              />
+              <h2 className="line-clamp-2 text-sm font-medium">{deck.name}</h2>
+            </Link>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setOpenMenuId(
+                  openMenuId === getDeckMenuId(deck.id)
+                    ? null
+                    : getDeckMenuId(deck.id)
+                )
+              }}
+              className="absolute right-2 top-2 z-10 rounded-md p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
+              aria-label="Deck actions"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+            {openMenuId === getDeckMenuId(deck.id) ? (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setOpenMenuId(null)}
+                />
+                <div className="absolute right-2 top-10 z-40 w-32 overflow-hidden rounded-md border bg-popover p-1 shadow-md">
+                  <button
+                    type="button"
+                    onClick={() => handleEditDeck(deck)}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                  >
+                    <Pencil className="size-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDeck(deck)}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         ))}
       </div>
+
+      <Dialog
+        open={editingFolder !== null}
+        onOpenChange={(open) => {
+          if (editFolder.isPending) {
+            return
+          }
+
+          if (!open) {
+            setEditingFolder(null)
+            editFolder.reset()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit folder</DialogTitle>
+            <DialogDescription>
+              Rename or move this folder.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void editFolderForm.handleSubmit()
+            }}
+          >
+            <editFolderForm.Field name="name">
+              {(field) => (
+                <div className="grid gap-2">
+                  <Label htmlFor={field.name}>Name</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) =>
+                      field.handleChange(event.target.value)
+                    }
+                    aria-invalid={field.state.meta.errors.length > 0}
+                    autoFocus
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </div>
+              )}
+            </editFolderForm.Field>
+            <editFolderForm.Field name="parentFolderId">
+              {(field) => {
+                const excludeIds = editingFolder
+                  ? getDescendantIds(editingFolder)
+                  : undefined
+                const folderOptions = flattenFolderSelectOptions(
+                  allFolders,
+                  excludeIds
+                )
+
+                return (
+                  <div className="grid gap-2">
+                    <Label htmlFor={field.name}>Parent folder</Label>
+                    <Select
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value ?? ""}
+                      onBlur={field.handleBlur}
+                      onChange={(event) =>
+                        field.handleChange(event.target.value || null)
+                      }
+                      aria-invalid={field.state.meta.errors.length > 0}
+                    >
+                      <option value="">None (root level)</option>
+                      {folderOptions.map((folderOption) => (
+                        <option
+                          key={folderOption.id}
+                          value={folderOption.id}
+                        >
+                          {folderOption.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <FieldError errors={field.state.meta.errors} />
+                  </div>
+                )
+              }}
+            </editFolderForm.Field>
+            {editFolder.isError ? (
+              <p className="text-sm text-destructive">
+                Unable to update folder.
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditingFolder(null)
+                  editFolder.reset()
+                }}
+                disabled={editFolder.isPending}
+              >
+                Cancel
+              </Button>
+              <editFolderForm.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              >
+                {([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !canSubmit ||
+                      isSubmitting ||
+                      editFolder.isPending
+                    }
+                  >
+                    {editFolder.isPending ? "Saving..." : "Save"}
+                  </Button>
+                )}
+              </editFolderForm.Subscribe>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editingDeck !== null}
+        onOpenChange={(open) => {
+          if (editDeck.isPending) {
+            return
+          }
+
+          if (!open) {
+            setEditingDeck(null)
+            editDeck.reset()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit deck</DialogTitle>
+            <DialogDescription>
+              Rename or move this deck.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void editDeckForm.handleSubmit()
+            }}
+          >
+            <editDeckForm.Field name="name">
+              {(field) => (
+                <div className="grid gap-2">
+                  <Label htmlFor={field.name}>Name</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) =>
+                      field.handleChange(event.target.value)
+                    }
+                    aria-invalid={field.state.meta.errors.length > 0}
+                    autoFocus
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </div>
+              )}
+            </editDeckForm.Field>
+            <editDeckForm.Field name="folderId">
+              {(field) => (
+                <div className="grid gap-2">
+                  <Label htmlFor={field.name}>Folder</Label>
+                  <Select
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value ?? ""}
+                    onBlur={field.handleBlur}
+                    onChange={(event) =>
+                      field.handleChange(event.target.value || null)
+                    }
+                    aria-invalid={field.state.meta.errors.length > 0}
+                  >
+                    <option value="">No folder</option>
+                    {allFolderOptions.map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <FieldError errors={field.state.meta.errors} />
+                </div>
+              )}
+            </editDeckForm.Field>
+            {editDeck.isError ? (
+              <p className="text-sm text-destructive">
+                Unable to update deck.
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditingDeck(null)
+                  editDeck.reset()
+                }}
+                disabled={editDeck.isPending}
+              >
+                Cancel
+              </Button>
+              <editDeckForm.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              >
+                {([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !canSubmit ||
+                      isSubmitting ||
+                      editDeck.isPending
+                    }
+                  >
+                    {editDeck.isPending ? "Saving..." : "Save"}
+                  </Button>
+                )}
+              </editDeckForm.Subscribe>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deletingFolder !== null}
+        onOpenChange={(open) => {
+          if (deleteFolder.isPending) {
+            return
+          }
+
+          if (!open) {
+            setDeletingFolder(null)
+            deleteFolder.reset()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete folder</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deletingFolder?.name}"? This
+              folder must be empty.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteFolder.isError ? (
+            <p className="text-sm text-destructive">
+              Folder must be empty before it can be deleted.
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDeletingFolder(null)
+                deleteFolder.reset()
+              }}
+              disabled={deleteFolder.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteFolder.isPending}
+              onClick={async () => {
+                if (!deletingFolder) {
+                  return
+                }
+
+                await deleteFolder.mutateAsync({
+                  path: { folderId: deletingFolder.id },
+                })
+                await queryClient.invalidateQueries({
+                  queryKey: getDecksQueryKey(),
+                })
+
+                if (currentFolderId === deletingFolder.id) {
+                  setCurrentFolderId(deletingFolder.parentFolderId)
+                }
+
+                setDeletingFolder(null)
+              }}
+            >
+              {deleteFolder.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deletingDeck !== null}
+        onOpenChange={(open) => {
+          if (deleteDeck.isPending) {
+            return
+          }
+
+          if (!open) {
+            setDeletingDeck(null)
+            deleteDeck.reset()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete deck</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deletingDeck?.name}"? This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteDeck.isError ? (
+            <p className="text-sm text-destructive">
+              Unable to delete deck.
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDeletingDeck(null)
+                deleteDeck.reset()
+              }}
+              disabled={deleteDeck.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteDeck.isPending}
+              onClick={async () => {
+                if (!deletingDeck) {
+                  return
+                }
+
+                await deleteDeck.mutateAsync({
+                  path: { deckId: deletingDeck.id },
+                })
+                await queryClient.invalidateQueries({
+                  queryKey: getDecksQueryKey(),
+                })
+                setDeletingDeck(null)
+              }}
+            >
+              {deleteDeck.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -487,6 +1086,35 @@ function flattenFolders(
     folder,
     ...flattenFolders(folder.children),
   ])
+}
+
+function getDescendantIds(folder: DeckFolderNodeDto): Set<string> {
+  const ids = new Set<string>([folder.id])
+  for (const child of folder.children) {
+    for (const id of getDescendantIds(child)) {
+      ids.add(id)
+    }
+  }
+  return ids
+}
+
+function flattenFolderSelectOptions(
+  folders: Array<DeckFolderNodeDto>,
+  excludeIds?: Set<string>,
+  depth = 0
+): Array<{ id: string; name: string }> {
+  return folders.flatMap((folder) => {
+    if (excludeIds?.has(folder.id)) {
+      return []
+    }
+
+    const prefix =
+      depth > 0 ? `${"\u00A0\u00A0".repeat(depth)}\u2014\u00A0` : ""
+    return [
+      { id: folder.id, name: `${prefix}${folder.name}` },
+      ...flattenFolderSelectOptions(folder.children, excludeIds, depth + 1),
+    ]
+  })
 }
 
 function findFolder(
