@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -30,10 +31,30 @@ var githubClientId = builder.Configuration["Authentication:GitHub:ClientId"];
 var githubClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"];
 var discordClientId = builder.Configuration["Authentication:Discord:ClientId"];
 var discordClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"];
+var openIddictClientEncryptionCertificatePath =
+    builder.Configuration["OpenIddict:Client:EncryptionCertificatePath"];
+var openIddictClientEncryptionCertificatePassword =
+    builder.Configuration["OpenIddict:Client:EncryptionCertificatePassword"];
+var openIddictClientSigningCertificatePath =
+    builder.Configuration["OpenIddict:Client:SigningCertificatePath"];
+var openIddictClientSigningCertificatePassword =
+    builder.Configuration["OpenIddict:Client:SigningCertificatePassword"];
 var hasGitHubAuth = !string.IsNullOrWhiteSpace(githubClientId) &&
                     !string.IsNullOrWhiteSpace(githubClientSecret);
 var hasDiscordAuth = !string.IsNullOrWhiteSpace(discordClientId) &&
                      !string.IsNullOrWhiteSpace(discordClientSecret);
+
+static X509Certificate2 LoadRequiredCertificate(string? path, string? password, string configurationKey)
+{
+    if (string.IsNullOrWhiteSpace(path))
+        throw new InvalidOperationException($"Missing configuration value '{configurationKey}'.");
+
+    if (!File.Exists(path))
+        throw new InvalidOperationException(
+            $"Configured certificate file for '{configurationKey}' was not found at '{path}'.");
+
+    return X509CertificateLoader.LoadPkcs12FromFile(path, password);
+}
 
 builder.Services.AddCors(options =>
 {
@@ -96,8 +117,16 @@ if (hasGitHubAuth || hasDiscordAuth)
         }
         else
         {
-            options.AddEphemeralEncryptionKey()
-                .AddEphemeralSigningKey();
+            options.AddEncryptionCertificate(
+                    LoadRequiredCertificate(
+                        openIddictClientEncryptionCertificatePath,
+                        openIddictClientEncryptionCertificatePassword,
+                        "OpenIddict:Client:EncryptionCertificatePath"))
+                .AddSigningCertificate(
+                    LoadRequiredCertificate(
+                        openIddictClientSigningCertificatePath,
+                        openIddictClientSigningCertificatePassword,
+                        "OpenIddict:Client:SigningCertificatePath"));
 
             options.UseAspNetCore()
                 .EnableRedirectionEndpointPassthrough();

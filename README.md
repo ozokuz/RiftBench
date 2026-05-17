@@ -97,3 +97,21 @@ Build the local images:
 ```bash
 just parallel-build
 ```
+
+## Production Deployment
+
+Create `.env` from `.env.example` and set the production domains, database credentials, auth credentials, and OpenIddict certificate passwords.
+
+Generate the OpenIddict production certificates:
+
+```bash
+just prod-certs
+```
+
+The certificates are written to `.secrets/openiddict/` and are mounted automatically into the production API container by `compose.yml`.
+
+Deploy the production stack:
+
+```bash
+just deploy
+```

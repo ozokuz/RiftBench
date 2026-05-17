@@ -103,7 +103,13 @@ services:
       Authentication__Discord__ClientSecret: ${Authentication__Discord__ClientSecret}
       Authentication__GitHub__ClientId: ${Authentication__GitHub__ClientId}
       Authentication__GitHub__ClientSecret: ${Authentication__GitHub__ClientSecret}
+      OpenIddict__Client__EncryptionCertificatePath: /run/secrets/openiddict/openiddict-client-encryption.pfx
+      OpenIddict__Client__EncryptionCertificatePassword: ${OpenIddict__Client__EncryptionCertificatePassword:-change-me-encryption}
+      OpenIddict__Client__SigningCertificatePath: /run/secrets/openiddict/openiddict-client-signing.pfx
+      OpenIddict__Client__SigningCertificatePassword: ${OpenIddict__Client__SigningCertificatePassword:-change-me-signing}
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    volumes:
+      - ./.secrets/openiddict:/run/secrets/openiddict:ro
     depends_on:
       db:
         condition: service_healthy

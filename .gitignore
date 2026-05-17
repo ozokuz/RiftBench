@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# local deployment secrets
+.secrets/
+
 # User-specific files
 *.rsuser
 *.suo

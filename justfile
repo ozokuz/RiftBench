@@ -5,6 +5,9 @@ prod-compose := "docker compose --env-file .env -f compose.yml"
 
 vite_api_base := env_var_or_default("VITE_API_BASE", "http://localhost:5036")
 web_base := env_var_or_default("WEB_BASE", "http://localhost:3000")
+prod_openiddict_cert_dir := ".secrets/openiddict"
+prod_openiddict_encryption_cert_path := prod_openiddict_cert_dir + "/openiddict-client-encryption.pfx"
+prod_openiddict_signing_cert_path := prod_openiddict_cert_dir + "/openiddict-client-signing.pfx"
 
 default:
     @just --list
@@ -112,10 +115,58 @@ build-web:
 # ---------- Production / Azure VM ----------
 # Production is fully containerized behind Traefik.
 
+prod-certs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cert_dir="{{prod_openiddict_cert_dir}}"
+    encryption_pfx="{{prod_openiddict_encryption_cert_path}}"
+    signing_pfx="{{prod_openiddict_signing_cert_path}}"
+    encryption_password="${OpenIddict__Client__EncryptionCertificatePassword:-change-me-encryption}"
+    signing_password="${OpenIddict__Client__SigningCertificatePassword:-change-me-signing}"
+
+    mkdir -p "$cert_dir"
+
+    if [ -f "$encryption_pfx" ] && [ -f "$signing_pfx" ]; then
+        echo "OpenIddict production certificates already exist in $cert_dir"
+        exit 0
+    fi
+
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$tmp_dir"' EXIT
+
+    if [ ! -f "$encryption_pfx" ]; then
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 730 -nodes \
+            -keyout "$tmp_dir/openiddict-client-encryption.key" \
+            -out "$tmp_dir/openiddict-client-encryption.crt" \
+            -subj "/CN=RiftBench OpenIddict Client Encryption"
+        openssl pkcs12 -export \
+            -out "$encryption_pfx" \
+            -inkey "$tmp_dir/openiddict-client-encryption.key" \
+            -in "$tmp_dir/openiddict-client-encryption.crt" \
+            -passout "pass:$encryption_password"
+    fi
+
+    if [ ! -f "$signing_pfx" ]; then
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 730 -nodes \
+            -keyout "$tmp_dir/openiddict-client-signing.key" \
+            -out "$tmp_dir/openiddict-client-signing.crt" \
+            -subj "/CN=RiftBench OpenIddict Client Signing"
+        openssl pkcs12 -export \
+            -out "$signing_pfx" \
+            -inkey "$tmp_dir/openiddict-client-signing.key" \
+            -in "$tmp_dir/openiddict-client-signing.crt" \
+            -passout "pass:$signing_password"
+    fi
+
+    chmod 600 "$encryption_pfx" "$signing_pfx"
+    echo "OpenIddict production certificates ready in $cert_dir"
+
 prod-build:
+    just prod-certs
     {{prod-compose}} build
 
 prod-up:
+    just prod-certs
     {{prod-compose}} up -d db traefik
     {{prod-compose}} --profile jobs run --rm migrate
     {{prod-compose}} --profile jobs run --rm ingest
