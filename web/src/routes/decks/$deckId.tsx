@@ -68,6 +68,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/lib/auth"
+import { renderCardText, resolveCardTextSource } from "@/lib/card-text"
 import { evaluateDeckLegality } from "@/lib/deck-legality"
 import { cn } from "@/lib/utils"
 
@@ -573,7 +574,7 @@ function DeckEditor({
     ? cards.find((card) => card.cardId === draggedCardId)
     : undefined
   const selectedDeckCard = selectedDetailCardId
-    ? cards.find((card) => card.cardId === selectedDetailCardId) ?? null
+    ? (cards.find((card) => card.cardId === selectedDetailCardId) ?? null)
     : null
 
   useEffect(() => {
@@ -2013,8 +2014,10 @@ function CardDetailsDialog({
 
               <div className="mt-5 space-y-3 text-lg sm:text-xl lg:text-2xl">
                 <p>Card Text:</p>
-                <p className="max-w-4xl leading-snug whitespace-pre-line">
-                  {card.plainText ?? card.richText ?? "No card text."}
+                <p className="max-w-4xl leading-snug break-words whitespace-pre-line">
+                  {renderCardText(
+                    resolveCardTextSource(card.plainText, card.richText)
+                  )}
                 </p>
               </div>
 
