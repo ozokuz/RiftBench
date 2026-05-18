@@ -11,7 +11,8 @@ import {
   Plus,
   Trash2,
 } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
+import type { PointerEvent as ReactPointerEvent } from "react"
 import { z } from "zod"
 // eslint-disable-next-line import/consistent-type-specifier-style
 import {
@@ -78,6 +79,13 @@ const editDeckFormSchema = zUpdateDeckSettingsRequest.extend({
   name: z.string().trim().min(1, "Deck name is required"),
 })
 
+const LONG_PRESS_DELAY_MS = 500
+const LONG_PRESS_MOVE_THRESHOLD_PX = 10
+
+type ContextMenuTarget =
+  | { kind: "folder"; item: DeckFolderNodeDto }
+  | { kind: "deck"; item: DeckListItemDto }
+
 function DecksRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -85,6 +93,8 @@ function DecksRoute() {
   const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false)
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [contextMenuTarget, setContextMenuTarget] =
+    useState<ContextMenuTarget | null>(null)
   const [editingFolder, setEditingFolder] = useState<DeckFolderNodeDto | null>(
     null
   )
@@ -115,6 +125,10 @@ function DecksRoute() {
   const decks = currentFolder ? currentFolder.decks : (data?.decks ?? [])
   const hasItems = folders.length > 0 || decks.length > 0
   const currentFolderParentId = currentFolder?.parentFolderId ?? null
+  const longPressTimerRef = useRef<number | null>(null)
+  const longPressPointerIdRef = useRef<number | null>(null)
+  const longPressStartRef = useRef({ x: 0, y: 0 })
+  const suppressClickUntilRef = useRef(0)
 
   function getCreateDeckDefaults(): CreateDeckRequest {
     return {
@@ -194,6 +208,7 @@ function DecksRoute() {
 
   function handleEditFolder(folder: DeckFolderNodeDto) {
     setOpenMenuId(null)
+    setContextMenuTarget(null)
     setEditFolderName(folder.name)
     setEditFolderParentId(folder.parentFolderId)
     setEditFolderSortOrder(folder.sortOrder)
@@ -203,6 +218,7 @@ function DecksRoute() {
 
   function handleEditDeck(deck: DeckListItemDto) {
     setOpenMenuId(null)
+    setContextMenuTarget(null)
     setEditDeckName(deck.name)
     setEditDeckFolderId(deck.folderId)
     editDeck.reset()
@@ -280,14 +296,76 @@ function DecksRoute() {
 
   function handleDeleteFolder(folder: DeckFolderNodeDto) {
     setOpenMenuId(null)
+    setContextMenuTarget(null)
     deleteFolder.reset()
     setDeletingFolder(folder)
   }
 
   function handleDeleteDeck(deck: DeckListItemDto) {
     setOpenMenuId(null)
+    setContextMenuTarget(null)
     deleteDeck.reset()
     setDeletingDeck(deck)
+  }
+
+  function clearLongPressState() {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+
+    longPressPointerIdRef.current = null
+  }
+
+  function openContextMenu(target: ContextMenuTarget) {
+    clearLongPressState()
+    setOpenMenuId(null)
+    setContextMenuTarget(target)
+  }
+
+  function closeContextMenu() {
+    setContextMenuTarget(null)
+  }
+
+  function startLongPress(
+    event: ReactPointerEvent<HTMLElement>,
+    target: ContextMenuTarget
+  ) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return
+    }
+
+    clearLongPressState()
+    longPressPointerIdRef.current = event.pointerId
+    longPressStartRef.current = { x: event.clientX, y: event.clientY }
+    longPressTimerRef.current = window.setTimeout(() => {
+      suppressClickUntilRef.current = performance.now() + 750
+      openContextMenu(target)
+    }, LONG_PRESS_DELAY_MS)
+  }
+
+  function handleLongPressMove(event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerId !== longPressPointerIdRef.current) {
+      return
+    }
+
+    const deltaX = event.clientX - longPressStartRef.current.x
+    const deltaY = event.clientY - longPressStartRef.current.y
+    if (Math.hypot(deltaX, deltaY) > LONG_PRESS_MOVE_THRESHOLD_PX) {
+      clearLongPressState()
+    }
+  }
+
+  function endLongPress(event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerId !== longPressPointerIdRef.current) {
+      return
+    }
+
+    clearLongPressState()
+  }
+
+  function shouldSuppressClick(timeStamp: number) {
+    return timeStamp <= suppressClickUntilRef.current
   }
 
   function getFolderMenuId(folderId: string) {
@@ -596,7 +674,25 @@ function DecksRoute() {
           <div key={folder.id} className="group relative">
             <button
               type="button"
-              onClick={() => setCurrentFolderId(folder.id)}
+              onPointerDown={(event) =>
+                startLongPress(event, { kind: "folder", item: folder })
+              }
+              onPointerMove={handleLongPressMove}
+              onPointerUp={endLongPress}
+              onPointerCancel={endLongPress}
+              onPointerLeave={endLongPress}
+              onContextMenu={(event) => {
+                event.preventDefault()
+                openContextMenu({ kind: "folder", item: folder })
+              }}
+              onClick={(event) => {
+                if (shouldSuppressClick(event.timeStamp)) {
+                  event.preventDefault()
+                  return
+                }
+
+                setCurrentFolderId(folder.id)
+              }}
               className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border bg-card p-4 text-center text-card-foreground transition-colors hover:bg-accent"
             >
               <Folder
@@ -616,6 +712,7 @@ function DecksRoute() {
                     ? null
                     : getFolderMenuId(folder.id)
                 )
+                setContextMenuTarget(null)
               }}
               className="absolute top-2 right-2 z-10 rounded-md p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent"
               aria-label="Folder actions"
@@ -655,6 +752,23 @@ function DecksRoute() {
             <Link
               to="/decks/$deckId"
               params={{ deckId: deck.id }}
+              onPointerDown={(event) =>
+                startLongPress(event, { kind: "deck", item: deck })
+              }
+              onPointerMove={handleLongPressMove}
+              onPointerUp={endLongPress}
+              onPointerCancel={endLongPress}
+              onPointerLeave={endLongPress}
+              onContextMenu={(event) => {
+                event.preventDefault()
+                openContextMenu({ kind: "deck", item: deck })
+              }}
+              onClick={(event) => {
+                if (shouldSuppressClick(event.timeStamp)) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }
+              }}
               className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border bg-card p-4 text-center text-card-foreground transition-colors hover:bg-accent"
             >
               <Library
@@ -673,6 +787,7 @@ function DecksRoute() {
                     ? null
                     : getDeckMenuId(deck.id)
                 )
+                setContextMenuTarget(null)
               }}
               className="absolute top-2 right-2 z-10 rounded-md p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent"
               aria-label="Deck actions"
@@ -708,6 +823,77 @@ function DecksRoute() {
           </div>
         ))}
       </div>
+
+      <Dialog
+        open={contextMenuTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeContextMenu()
+          }
+        }}
+      >
+        <DialogContent className="top-auto bottom-0 left-1/2 w-[calc(100%-1rem)] max-w-xl -translate-x-1/2 translate-y-0 rounded-t-3xl rounded-b-none border-[#2f2f2f] bg-[#222222] p-0 text-white sm:bottom-4 sm:rounded-3xl">
+          <div className="mx-auto mt-3 h-1.5 w-14 rounded-full bg-white/20 sm:hidden" />
+          <div className="p-6">
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="truncate text-xl font-semibold">
+                {contextMenuTarget?.item.name}
+              </DialogTitle>
+              <DialogDescription className="text-white/60">
+                {contextMenuTarget?.kind === "folder" ? "Folder" : "Deck"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-5 grid gap-2">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-base transition hover:bg-white/5"
+                onClick={() => {
+                  if (!contextMenuTarget) {
+                    return
+                  }
+
+                  if (contextMenuTarget.kind === "folder") {
+                    handleEditFolder(contextMenuTarget.item)
+                    return
+                  }
+
+                  handleEditDeck(contextMenuTarget.item)
+                }}
+              >
+                <Pencil className="size-4" />
+                Edit
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-base text-destructive transition hover:bg-white/5"
+                onClick={() => {
+                  if (!contextMenuTarget) {
+                    return
+                  }
+
+                  if (contextMenuTarget.kind === "folder") {
+                    handleDeleteFolder(contextMenuTarget.item)
+                    return
+                  }
+
+                  handleDeleteDeck(contextMenuTarget.item)
+                }}
+              >
+                <Trash2 className="size-4" />
+                Delete
+              </button>
+              <button
+                type="button"
+                className="mt-2 rounded-2xl border border-white/10 px-4 py-3 text-base transition hover:bg-white/5"
+                onClick={closeContextMenu}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={editingFolder !== null}

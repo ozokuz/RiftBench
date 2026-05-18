@@ -568,6 +568,15 @@ function DeckEditor({
   const draggedCard = draggedCardId
     ? cards.find((card) => card.cardId === draggedCardId)
     : undefined
+  const selectedDeckCard = selectedDetailCardId
+    ? cards.find((card) => card.cardId === selectedDetailCardId) ?? null
+    : null
+
+  useEffect(() => {
+    if (selectedDetailCardId && !selectedDeckCard) {
+      setSelectedDetailCardId(null)
+    }
+  }, [selectedDeckCard, selectedDetailCardId])
 
   function updateDeckCards(
     updater: (state: {
@@ -992,6 +1001,9 @@ function DeckEditor({
         />
         <CardDetailsDialog
           cardId={selectedDetailCardId}
+          deckCard={selectedDeckCard}
+          canEditQuantity={isOwner}
+          onChangeQuantity={changeDeckCardQuantity}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedDetailCardId(null)
@@ -1805,9 +1817,15 @@ function CardSearchDialog({
 
 function CardDetailsDialog({
   cardId,
+  deckCard,
+  canEditQuantity = false,
+  onChangeQuantity,
   onOpenChange,
 }: {
   cardId: string | null
+  deckCard?: EditableDeckCard | null
+  canEditQuantity?: boolean
+  onChangeQuantity?: (cardId: string, delta: number) => void
   onOpenChange: (open: boolean) => void
 }) {
   const detailQuery = useQuery({
@@ -1831,8 +1849,8 @@ function CardDetailsDialog({
 
   return (
     <Dialog open={cardId !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-[1680px] overflow-y-auto border-[#2f2f2f] bg-[#222222] p-9 text-white">
-        <DialogTitle className="text-5xl font-normal tracking-normal">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-[1680px] overflow-y-auto border-[#2f2f2f] bg-[#222222] p-5 text-white sm:p-7 lg:p-9">
+        <DialogTitle className="text-3xl font-normal tracking-normal sm:text-4xl lg:text-5xl">
           {card?.name ?? "Card Details"}
         </DialogTitle>
 
@@ -1844,33 +1862,63 @@ function CardDetailsDialog({
         ) : null}
 
         {card ? (
-          <div className="grid gap-14 lg:grid-cols-[480px_1fr]">
-            <div className="max-w-[480px] overflow-hidden rounded-2xl bg-black">
-              {card.imageUrl ? (
-                <img
-                  src={card.imageUrl}
-                  alt={card.name}
-                  className="w-full object-cover"
-                />
-              ) : (
-                <div className="flex aspect-[0.714/1] items-center justify-center p-6 text-center text-xl">
-                  {card.name}
+          <div className="grid gap-6 lg:grid-cols-[480px_1fr] lg:gap-14">
+            <div className="max-w-[480px]">
+              <div className="overflow-hidden rounded-2xl bg-black">
+                {card.imageUrl ? (
+                  <img
+                    src={card.imageUrl}
+                    alt={card.name}
+                    className="w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[0.714/1] items-center justify-center p-6 text-center text-xl">
+                    {card.name}
+                  </div>
+                )}
+              </div>
+
+              {canEditQuantity && deckCard && onChangeQuantity ? (
+                <div className="mt-4 flex items-center justify-center gap-3 rounded-2xl bg-[#333333] px-4 py-4">
+                  <button
+                    type="button"
+                    className="flex size-10 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/20 transition hover:bg-[#202020]"
+                    aria-label={`Decrease ${card.name} count`}
+                    onClick={() => onChangeQuantity(deckCard.cardId, -1)}
+                  >
+                    <Minus className="size-4" />
+                  </button>
+                  <div className="min-w-16 rounded-full bg-black/35 px-4 py-2 text-center text-base font-semibold ring-1 ring-white/10 sm:text-lg">
+                    {deckCard.quantity}
+                  </div>
+                  <button
+                    type="button"
+                    className="flex size-10 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/20 transition hover:bg-[#202020]"
+                    aria-label={`Increase ${card.name} count`}
+                    onClick={() => onChangeQuantity(deckCard.cardId, 1)}
+                  >
+                    <Plus className="size-4" />
+                  </button>
                 </div>
-              )}
+              ) : null}
             </div>
 
-            <section className="min-h-[660px] rounded-lg bg-[#333333] p-7">
-              <div className="flex items-start justify-between gap-6">
-                <div className="space-y-2">
-                  <h2 className="text-3xl font-normal tracking-normal">
-                    {card.name}
-                  </h2>
-                  <p className="text-2xl text-muted-foreground">{card.type}</p>
+            <section className="min-h-[660px] rounded-lg bg-[#333333] p-5 sm:p-6 lg:p-7">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-normal tracking-normal sm:text-3xl">
+                      {card.name}
+                    </h2>
+                    <p className="text-lg text-muted-foreground sm:text-2xl">
+                      {card.type}
+                    </p>
+                  </div>
                 </div>
                 <DomainIconRow domains={card.domains} />
               </div>
 
-              <div className="mt-5 space-y-3 text-2xl">
+              <div className="mt-5 space-y-3 text-lg sm:text-xl lg:text-2xl">
                 <p>Card Text:</p>
                 <p className="max-w-4xl leading-snug whitespace-pre-line">
                   {card.plainText ?? card.richText ?? "No card text."}
@@ -1878,7 +1926,7 @@ function CardDetailsDialog({
               </div>
 
               {card.flavourText ? (
-                <p className="mt-6 max-w-4xl text-lg whitespace-pre-line text-muted-foreground italic">
+                <p className="mt-6 max-w-4xl text-base whitespace-pre-line text-muted-foreground italic sm:text-lg">
                   {card.flavourText}
                 </p>
               ) : null}
