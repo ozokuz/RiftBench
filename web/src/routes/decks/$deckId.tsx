@@ -1403,7 +1403,7 @@ function DeckToolbar({
         {showCreateCategoryDropZone ? (
           <CreateCategoryDropZone disabled={createCategoryDropZoneDisabled} />
         ) : (
-          <>
+          <div className="min-h-16">
             <div className="flex flex-col justify-between gap-4 xl:flex-row">
               <div className="flex gap-4">
                 {addCardControl}
@@ -1423,7 +1423,7 @@ function DeckToolbar({
 
               <div className="grow xl:w-[320px] xl:grow-0">{filterControl}</div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </section>
@@ -1437,20 +1437,18 @@ function CreateCategoryDropZone({ disabled }: { disabled: boolean }) {
   })
 
   return (
-    <div className="flex min-h-[92px] items-center justify-center">
+    <div className="flex min-h-16 items-center justify-center">
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-16 w-full max-w-md items-center justify-center rounded-xl border border-dashed px-5 py-4 text-center transition",
+          "flex min-h-8 w-full max-w-xs flex-col items-center justify-center rounded-xl border border-dashed px-5 py-4 text-center transition",
           isOver
             ? "border-emerald-400 bg-emerald-500/10 text-emerald-100"
             : "border-[#4a4a4a] bg-[#171717] text-[#d8d8d8]"
         )}
       >
         <p className="text-sm font-semibold tracking-[0.2em] uppercase">
-          {isOver
-            ? "Release to name and create a new category"
-            : "Drop card here to create category"}
+          Create Category
         </p>
       </div>
     </div>
