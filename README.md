@@ -1,117 +1,31 @@
 # RiftBench
 
+RiftBench is a Riftbound deck-building and browsing application. It combines a React/TanStack web app, an ASP.NET Core API, a PostgreSQL data model, and an ingestion job for importing card data, with support for authenticated personal deck libraries, public deck browsing, and interactive deck editing.
+
 ## Development Setup
 
-### Requirements
-
-- `mise`
-- Docker with Compose
-
-Your interactive shell should already be configured to activate `mise` so the pinned tools are available directly on `PATH`.
-
-Tools are pinned in [mise.toml](/home/ozoku/src/github.com/ozokuz/RiftBench/mise.toml):
-
-- `.NET SDK 10`
-- `Node 24`
-- `pnpm 10.20.0`
-- `just 1.51.0`
-
-### Initial Setup
-
-1. Install the pinned tools:
-
-```bash
-mise install
-```
-
-2. Restore the local .NET tools:
-
-```bash
-dotnet tool restore
-```
-
-3. Create a local env file from the example and fill in the auth credentials:
-
-```bash
-cp .env.example .env
-```
-
-Required auth variables:
-
-- `Authentication__Discord__ClientId`
-- `Authentication__Discord__ClientSecret`
-- `Authentication__GitHub__ClientId`
-- `Authentication__GitHub__ClientSecret`
-
-### Start Development
-
-Install dependencies:
-
-```bash
-just dependencies
-```
-
-Start PostgreSQL:
-
-```bash
-just dev-db
-```
-
-Apply database migrations:
-
-```bash
-just dev-migrate
-```
-
-Run the API and web app together:
-
-```bash
-just dev
-```
-
-Default local URLs:
-
-- Web: `http://localhost:3000`
-- API: `http://localhost:5036`
-
-### Optional Bootstrap
-
-To import card data into the local database:
-
-```bash
-just dev-ingest
-```
-
-### Quality Checks
-
-Run all local checks:
-
-```bash
-just check
-```
-
-### Docker Builds
-
-Build the local images:
-
-```bash
-just parallel-build
-```
+See [development-setup.md](./docs/development-setup.md).
 
 ## Production Deployment
 
-Create `.env` from `.env.example` and set the production domains, database credentials, auth credentials, and OpenIddict certificate passwords.
+See [production-deployment.md](./docs/production-deployment.md).
 
-Generate the OpenIddict production certificates:
+## Architecture
 
-```bash
-just prod-certs
-```
+See [architecture-overview.md](./docs/architecture-overview.md).
 
-The certificates are written to `.secrets/openiddict/` and are mounted automatically into the production API container by `compose.yml`.
+## Tech Stack
 
-Deploy the production stack:
+See [tech-stack.md](./docs/tech-stack.md).
 
-```bash
-just deploy
-```
+## Application Flows
+
+See [application-flows.md](./docs/application-flows.md).
+
+## Database Entities
+
+See [database-entities.md](./docs/database-entities.md).
+
+## Application Routes
+
+See [application-routes.md](./docs/application-routes.md).
