@@ -1,15 +1,14 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useEffect, type ReactNode } from "react"
 import { useServerFn } from "@tanstack/react-start"
-import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
+import {
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query"
 import { client } from "@/client/client.gen"
 import { getCurrentUserFn } from "@/server/auth"
 
-type User = {
+export type User = {
   accessToken: string
   userId: string
   email: string
@@ -51,7 +50,9 @@ export function clearClientAccessToken() {
   })
 }
 
-export async function loadCurrentUser(getCurrentUser: () => Promise<User | null>) {
+export async function loadCurrentUser(
+  getCurrentUser: () => Promise<User | null>
+) {
   const user = await getCurrentUser()
   if (user) {
     setClientAccessToken(user.accessToken)
@@ -62,7 +63,9 @@ export async function loadCurrentUser(getCurrentUser: () => Promise<User | null>
   return user
 }
 
-export function currentUserQueryOptions(getCurrentUser: () => Promise<User | null>) {
+export function currentUserQueryOptions(
+  getCurrentUser: () => Promise<User | null>
+) {
   return {
     queryKey: currentUserQueryKey,
     queryFn: () => loadCurrentUser(getCurrentUser),
@@ -70,7 +73,10 @@ export function currentUserQueryOptions(getCurrentUser: () => Promise<User | nul
   }
 }
 
-export function setCurrentUserCache(queryClient: QueryClient, user: User | null) {
+export function setCurrentUserCache(
+  queryClient: QueryClient,
+  user: User | null
+) {
   queryClient.setQueryData(currentUserQueryKey, user)
 }
 
