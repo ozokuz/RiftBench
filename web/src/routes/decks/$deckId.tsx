@@ -396,7 +396,7 @@ function DeckEditor({
     normalizeDeck(deck)
   )
   const [groupMode, setGroupMode] = useState<GroupMode>("category")
-  const [sortMode, setSortMode] = useState<SortMode>("custom")
+  const [sortMode, setSortMode] = useState<SortMode>("energy")
   const [filter, setFilter] = useState("")
   const [quickAdd, setQuickAdd] = useState("")
   const [debouncedQuickAdd, setDebouncedQuickAdd] = useState("")
@@ -578,7 +578,7 @@ function DeckEditor({
     ? cards.find((card) => card.cardId === draggedCardId)
     : undefined
   const selectedDeckCard = selectedDetailCardId
-    ? deckCardsById.get(selectedDetailCardId) ?? null
+    ? (deckCardsById.get(selectedDetailCardId) ?? null)
     : null
 
   useEffect(() => {
@@ -1500,7 +1500,6 @@ function DeckToolbar({
       value={sortMode}
       onChange={(event) => onSortModeChange(event.target.value as SortMode)}
     >
-      <option value="custom">Manual</option>
       <option value="name">Name</option>
       <option value="energy">Energy</option>
     </LabeledSelect>
@@ -1773,7 +1772,10 @@ function CardSearchDialog({
     setSubmittedFilters(snapshotCardSearchFilters(filters))
   }
 
-  function handleSearchResultQuantityChange(card: CardSummaryDto, delta: number) {
+  function handleSearchResultQuantityChange(
+    card: CardSummaryDto,
+    delta: number
+  ) {
     const existingDeckCard = deckCardsById.get(card.id)
 
     if (!existingDeckCard) {
