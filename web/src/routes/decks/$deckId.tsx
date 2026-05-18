@@ -587,6 +587,13 @@ function DeckEditor({
     }
   }, [selectedDeckCard, selectedDetailCardId])
 
+  useEffect(() => {
+    if (selectedDetailCardId) {
+      setDraggedCardId(null)
+      setHoveredCategoryId(null)
+    }
+  }, [selectedDetailCardId])
+
   function updateDeckCards(
     updater: (state: {
       categories: Array<EditableCategory>
@@ -1706,12 +1713,21 @@ function CardSearchDialog({
     useState<CardSearchFilters | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null)
+  const hasOpenedRef = useRef(false)
   const searchQuery = useQuery({
     ...getCardsOptions({
       query: submittedFilters ? toCardSearchQuery(submittedFilters) : undefined,
     }),
     enabled: open && submittedFilters !== null,
   })
+
+  useEffect(() => {
+    if (open && !hasOpenedRef.current) {
+      hasOpenedRef.current = true
+      setHasSearched(true)
+      setSubmittedFilters(snapshotCardSearchFilters(filters))
+    }
+  }, [open, filters])
 
   useEffect(() => {
     if (!open || !hasSearched) {
@@ -2046,7 +2062,7 @@ function CardDetailsDialog({
                       {card.name}
                     </h2>
                     <p className="text-lg text-muted-foreground sm:text-2xl">
-                      {card.type}
+                      {card.type}{card.supertype && card.supertype !== "None" ? ` — ${card.supertype}` : null}
                     </p>
                   </div>
                 </div>
@@ -2341,7 +2357,10 @@ function CardGroup({
             })}
             onHover={() => setHoveredCardId(deckCard.cardId)}
             onChangeQuantity={onChangeQuantity}
-            onOpenCardDetails={onOpenCardDetails}
+            onOpenCardDetails={(cardId) => {
+              setHoveredCardId(null)
+              onOpenCardDetails(cardId)
+            }}
           />
         ))}
         {placeholderCard ? (
@@ -2546,8 +2565,8 @@ function getStackOffset({
     return 0
   }
 
-  if (hoveredCardIndex !== -1 && index > hoveredCardIndex) {
-    return 8
+  if (hoveredCardIndex !== -1 && index === hoveredCardIndex + 1) {
+    return 0
   }
 
   return isBattlefield ? -86 : -214
