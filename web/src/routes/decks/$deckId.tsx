@@ -12,7 +12,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  ArrowDownWideNarrow,
   BarChart3,
   Check,
   Minus,
@@ -20,7 +19,6 @@ import {
   Plus,
   Search,
   Settings,
-  SquareStack,
 } from "lucide-react"
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core"
 import type { ComponentProps, FormEvent, KeyboardEvent } from "react"
@@ -209,6 +207,12 @@ const ENERGY_CURVE_CHART_CONFIG = {
     color: "#bdbdbd",
   },
 } satisfies ChartConfig
+
+const DECK_EDITOR_PAGE_BREAKOUT_CLASS =
+  "relative left-1/2 right-1/2 ml-[-50vw] mr-[-50vw] w-screen"
+const DECK_EDITOR_PAGE_WIDTH_CLASS =
+  "mx-auto w-full sm:w-[calc(100vw-2rem)] md:w-[calc(100vw-3rem)] lg:w-[calc(100vw-clamp(1.25rem,5vw,6rem)*2)] 2xl:max-w-[1800px]"
+const DECK_EDITOR_SECTION_CONTENT_CLASS = "w-full px-4 md:px-5 lg:px-6"
 
 function normalizeDeck(deck: DeckDetailDto) {
   const categories = [...deck.categories]
@@ -875,112 +879,132 @@ function DeckEditor({
   }
 
   return (
-    <div className="flex grow flex-col gap-4 bg-[#101010] pb-5 text-white">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={clearDragState}
+    <div className={cn(DECK_EDITOR_PAGE_BREAKOUT_CLASS, "text-white")}>
+      <div
+        className={cn(
+          DECK_EDITOR_PAGE_WIDTH_CLASS,
+          "flex min-h-full flex-col gap-4 bg-[#101010] pb-5"
+        )}
       >
-        <DeckHeader
-          deck={deck}
-          isOwner={isOwner}
-          totalQuantity={totalQuantity}
-          isSaving={saveMutation.isPending}
-          hasUnsavedChanges={dirtyRef.current}
-          onSettingsClick={() => setIsSettingsOpen(true)}
-        />
-
-        {isOwner ? (
-          <DeckToolbar
-            groupMode={groupMode}
-            sortMode={sortMode}
-            filter={filter}
-            quickAdd={quickAdd}
-            quickAddResults={quickAddResults}
-            selectedQuickAddIndex={selectedQuickAddIndex}
-            showCreateCategoryDropZone={isCreateCategoryTargetActive}
-            createCategoryDropZoneDisabled={groupMode !== "category"}
-            onGroupModeChange={setGroupMode}
-            onSortModeChange={setSortMode}
-            onFilterChange={setFilter}
-            onQuickAddChange={setQuickAdd}
-            onQuickAddKeyDown={handleQuickAddKeyDown}
-            onQuickAddHighlight={setSelectedQuickAddIndex}
-            onQuickAddSelect={addQuickAddCard}
-            onOpenCardSearch={() => setIsCardSearchOpen(true)}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={clearDragState}
+        >
+          <DeckHeader
+            deck={deck}
+            isOwner={isOwner}
+            totalQuantity={totalQuantity}
+            isSaving={saveMutation.isPending}
+            hasUnsavedChanges={dirtyRef.current}
+            onSettingsClick={() => setIsSettingsOpen(true)}
           />
-        ) : null}
 
-        <div className="flex w-full flex-wrap items-start gap-6 bg-[#222222] p-5">
-          {groupedCards.map((group) => (
-            <CardGroup
-              key={group.id}
-              group={group}
-              canDrag={isOwner && groupMode === "category"}
-              draggedCardId={draggedCardId}
-              placeholderCard={
-                hoveredCategoryId === group.id ? draggedCard : undefined
-              }
-              isRenaming={renamingCategoryId === group.id}
-              renameValue={renamingCategoryId === group.id ? renameDraft : ""}
-              renameError={renamingCategoryId === group.id ? renameError : null}
-              isMenuOpen={openCategoryMenuId === group.id}
-              onRenameValueChange={setRenameDraft}
-              onRenameSubmit={submitCategoryRename}
-              onRenameCancel={cancelRenamingCategory}
-              onMenuOpenChange={(open) =>
-                setOpenCategoryMenuId(open ? group.id : null)
-              }
-              onStartRename={startRenamingCategory}
-              onChangeQuantity={changeDeckCardQuantity}
-              onOpenCardDetails={setSelectedDetailCardId}
+          {isOwner ? (
+            <DeckToolbar
+              groupMode={groupMode}
+              sortMode={sortMode}
+              filter={filter}
+              quickAdd={quickAdd}
+              quickAddResults={quickAddResults}
+              selectedQuickAddIndex={selectedQuickAddIndex}
+              showCreateCategoryDropZone={isCreateCategoryTargetActive}
+              createCategoryDropZoneDisabled={groupMode !== "category"}
+              onGroupModeChange={setGroupMode}
+              onSortModeChange={setSortMode}
+              onFilterChange={setFilter}
+              onQuickAddChange={setQuickAdd}
+              onQuickAddKeyDown={handleQuickAddKeyDown}
+              onQuickAddHighlight={setSelectedQuickAddIndex}
+              onQuickAddSelect={addQuickAddCard}
+              onOpenCardSearch={() => setIsCardSearchOpen(true)}
             />
-          ))}
-        </div>
-        <DeckStatsSection stats={deckStats} />
-        <DragOverlay dropAnimation={null}>
-          {draggedCard ? <DeckCardDragPreview deckCard={draggedCard} /> : null}
-        </DragOverlay>
-      </DndContext>
-      <CardSearchDialog
-        open={isCardSearchOpen}
-        onOpenChange={setIsCardSearchOpen}
-        onAddCard={addCard}
-      />
-      <CreateCategoryDialog
-        open={isCreateCategoryDialogOpen}
-        name={newCategoryName}
-        error={createCategoryError}
-        onNameChange={(value) => {
-          setNewCategoryName(value)
-          if (createCategoryError) {
-            setCreateCategoryError(null)
-          }
-        }}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeCreateCategoryDialog()
-          }
-        }}
-        onSubmit={createCategory}
-      />
-      <CardDetailsDialog
-        cardId={selectedDetailCardId}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedDetailCardId(null)
-          }
-        }}
-      />
-      <DeckSettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        deck={deck}
-        folderOptions={allFolderOptions}
-      />
+          ) : null}
+
+          <section className="w-full bg-[#222222] py-5">
+            <div
+              className={cn(
+                DECK_EDITOR_SECTION_CONTENT_CLASS,
+                "flex flex-wrap items-start gap-6"
+              )}
+            >
+              {groupedCards.map((group) => (
+                <CardGroup
+                  key={group.id}
+                  group={group}
+                  canDrag={isOwner && groupMode === "category"}
+                  draggedCardId={draggedCardId}
+                  placeholderCard={
+                    hoveredCategoryId === group.id ? draggedCard : undefined
+                  }
+                  isRenaming={renamingCategoryId === group.id}
+                  renameValue={
+                    renamingCategoryId === group.id ? renameDraft : ""
+                  }
+                  renameError={
+                    renamingCategoryId === group.id ? renameError : null
+                  }
+                  isMenuOpen={openCategoryMenuId === group.id}
+                  onRenameValueChange={setRenameDraft}
+                  onRenameSubmit={submitCategoryRename}
+                  onRenameCancel={cancelRenamingCategory}
+                  onMenuOpenChange={(open) =>
+                    setOpenCategoryMenuId(open ? group.id : null)
+                  }
+                  onStartRename={startRenamingCategory}
+                  onChangeQuantity={changeDeckCardQuantity}
+                  onOpenCardDetails={setSelectedDetailCardId}
+                />
+              ))}
+            </div>
+          </section>
+          <DeckStatsSection stats={deckStats} />
+          <DragOverlay dropAnimation={null}>
+            {draggedCard ? (
+              <DeckCardDragPreview deckCard={draggedCard} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+        <CardSearchDialog
+          open={isCardSearchOpen}
+          onOpenChange={setIsCardSearchOpen}
+          onAddCard={addCard}
+        />
+        <CreateCategoryDialog
+          open={isCreateCategoryDialogOpen}
+          name={newCategoryName}
+          error={createCategoryError}
+          onNameChange={(value) => {
+            setNewCategoryName(value)
+            if (createCategoryError) {
+              setCreateCategoryError(null)
+            }
+          }}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeCreateCategoryDialog()
+            }
+          }}
+          onSubmit={createCategory}
+        />
+        <CardDetailsDialog
+          cardId={selectedDetailCardId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedDetailCardId(null)
+            }
+          }}
+        />
+        <DeckSettingsDialog
+          open={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+          deck={deck}
+          folderOptions={allFolderOptions}
+        />
+      </div>
     </div>
   )
 }
@@ -1004,7 +1028,12 @@ function DeckHeader({
 
   return (
     <section className="bg-[#202020] py-5">
-      <div className="flex w-full items-end justify-between gap-6 px-5">
+      <div
+        className={cn(
+          DECK_EDITOR_SECTION_CONTENT_CLASS,
+          "flex items-end justify-between gap-6"
+        )}
+      >
         <div className="space-y-2">
           <div className="flex flex-wrap items-baseline gap-2">
             <h1 className="text-2xl font-semibold tracking-normal">
@@ -1054,22 +1083,26 @@ function DeckHeader({
 
 function DeckStatsSection({ stats }: { stats: DeckStatsModel }) {
   return (
-    <section className="bg-[#222222] px-5 pt-5 pb-5">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-black/35 ring-1 ring-white/10">
-          <BarChart3 className="size-5 text-[#d8d8d8]" />
+    <section className="bg-[#222222] py-5">
+      <div className={DECK_EDITOR_SECTION_CONTENT_CLASS}>
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-black/35 ring-1 ring-white/10">
+            <BarChart3 className="size-5 text-[#d8d8d8]" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-semibold tracking-normal">
+              Deck Stats
+            </h2>
+          </div>
         </div>
-        <div>
-          <h2 className="text-3xl font-semibold tracking-normal">Deck Stats</h2>
-        </div>
-      </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
-        <EnergyCurveCard
-          averageEnergy={stats.averageEnergy}
-          curve={stats.energyCurve}
-        />
-        <DomainStatsGrid stats={stats.domainStats} />
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
+          <EnergyCurveCard
+            averageEnergy={stats.averageEnergy}
+            curve={stats.energyCurve}
+          />
+          <DomainStatsGrid stats={stats.domainStats} />
+        </div>
       </div>
     </section>
   )
@@ -1279,105 +1312,120 @@ function DeckToolbar({
   onQuickAddSelect: (card: CardSummaryDto) => void
   onOpenCardSearch: () => void
 }) {
-  return (
-    <section className="w-full bg-[#242424] p-3">
-      {showCreateCategoryDropZone ? (
-        <CreateCategoryDropZone disabled={createCategoryDropZoneDisabled} />
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1.5">
-              <span className="block text-sm font-semibold text-[#d8d8d8]">
-                Add Card
-              </span>
-              <Button
-                variant="outline"
-                onClick={onOpenCardSearch}
-                className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
-              >
-                <Search className="size-4" />
-                Card Search
-              </Button>
-            </div>
-            <div className="relative min-w-64 space-y-1.5">
-              <span className="text-sm font-semibold text-[#d8d8d8]">
-                Quick Add
-              </span>
-              <Input
-                value={quickAdd}
-                onChange={(event) => onQuickAddChange(event.target.value)}
-                onKeyDown={onQuickAddKeyDown}
-                placeholder="Death from Below"
-                className="border-[#3a3a3a] bg-black text-white"
-              />
-              {quickAddResults.length > 0 ? (
-                <div className="absolute z-20 mt-1 w-full rounded-lg border border-[#333] bg-[#111] p-1 shadow-xl">
-                  {quickAddResults.map((card, index) => (
-                    <button
-                      key={card.id}
-                      type="button"
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#252525]",
-                        index === selectedQuickAddIndex && "bg-[#252525]"
-                      )}
-                      onMouseEnter={() => onQuickAddHighlight(index)}
-                      onClick={() => {
-                        onQuickAddSelect(card)
-                      }}
-                    >
-                      <span>{card.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {card.type}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
+  const addCardControl = (
+    <div className="space-y-1.5">
+      <span className="block text-sm font-semibold text-[#d8d8d8]">
+        Add Card
+      </span>
+      <Button
+        variant="outline"
+        onClick={onOpenCardSearch}
+        className="border-[#3a3a3a] bg-black text-white hover:bg-[#161616]"
+      >
+        <Search className="size-4" />
+        Card Search
+      </Button>
+    </div>
+  )
 
-          <div className="flex items-end gap-3">
-            <SquareStack className="mb-2 size-5 text-[#d8d8d8]" />
-            <LabeledSelect
-              label="Group By"
-              value={groupMode}
-              onChange={(event) =>
-                onGroupModeChange(event.target.value as GroupMode)
-              }
+  const quickAddControl = (
+    <div className="relative space-y-1.5">
+      <span className="text-sm font-semibold text-[#d8d8d8]">Quick Add</span>
+      <Input
+        value={quickAdd}
+        onChange={(event) => onQuickAddChange(event.target.value)}
+        onKeyDown={onQuickAddKeyDown}
+        placeholder="Death from Below"
+        className="border-[#3a3a3a] bg-black text-white"
+      />
+      {quickAddResults.length > 0 ? (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-[#333] bg-[#111] p-1 shadow-xl">
+          {quickAddResults.map((card, index) => (
+            <button
+              key={card.id}
+              type="button"
+              className={cn(
+                "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#252525]",
+                index === selectedQuickAddIndex && "bg-[#252525]"
+              )}
+              onMouseEnter={() => onQuickAddHighlight(index)}
+              onClick={() => {
+                onQuickAddSelect(card)
+              }}
             >
-              <option value="category">Categories</option>
-              <option value="type">Type</option>
-            </LabeledSelect>
-          </div>
-
-          <div className="flex items-end gap-3">
-            <ArrowDownWideNarrow className="mb-2 size-5 text-[#d8d8d8]" />
-            <LabeledSelect
-              label="Sort By"
-              value={sortMode}
-              onChange={(event) =>
-                onSortModeChange(event.target.value as SortMode)
-              }
-            >
-              <option value="custom">Manual</option>
-              <option value="name">Name</option>
-              <option value="energy">Energy</option>
-            </LabeledSelect>
-          </div>
-
-          <div className="min-w-64 space-y-1.5 self-end">
-            <span className="text-sm font-semibold text-[#d8d8d8]">
-              Filter Deck
-            </span>
-            <Input
-              value={filter}
-              onChange={(event) => onFilterChange(event.target.value)}
-              placeholder="Death from Below"
-              className="border-[#3a3a3a] bg-black text-white"
-            />
-          </div>
+              <span>{card.name}</span>
+              <span className="text-xs text-muted-foreground">{card.type}</span>
+            </button>
+          ))}
         </div>
-      )}
+      ) : null}
+    </div>
+  )
+
+  const groupByControl = (
+    <LabeledSelect
+      label="Group By"
+      value={groupMode}
+      onChange={(event) => onGroupModeChange(event.target.value as GroupMode)}
+    >
+      <option value="category">Categories</option>
+      <option value="type">Type</option>
+    </LabeledSelect>
+  )
+
+  const sortByControl = (
+    <LabeledSelect
+      label="Sort By"
+      value={sortMode}
+      onChange={(event) => onSortModeChange(event.target.value as SortMode)}
+    >
+      <option value="custom">Manual</option>
+      <option value="name">Name</option>
+      <option value="energy">Energy</option>
+    </LabeledSelect>
+  )
+
+  const filterControl = (
+    <div className="space-y-1.5">
+      <span className="text-sm font-semibold text-[#d8d8d8]">Filter Deck</span>
+      <Input
+        value={filter}
+        onChange={(event) => onFilterChange(event.target.value)}
+        placeholder="Death from Below"
+        className="border-[#3a3a3a] bg-black text-white"
+      />
+    </div>
+  )
+
+  return (
+    <section className="w-full bg-[#242424] py-3">
+      <div className={DECK_EDITOR_SECTION_CONTENT_CLASS}>
+        {showCreateCategoryDropZone ? (
+          <CreateCategoryDropZone disabled={createCategoryDropZoneDisabled} />
+        ) : (
+          <>
+            <div className="flex flex-col justify-between gap-4 xl:flex-row">
+              <div className="flex gap-4">
+                {addCardControl}
+                <div className="shrink-0 grow md:w-55 xl:grow-0">
+                  {quickAddControl}
+                </div>
+              </div>
+
+              <div className="flex grow flex-col justify-center gap-4 sm:flex-row">
+                <div className="shrink-0 grow md:w-55 xl:grow-0">
+                  {groupByControl}
+                </div>
+                <div className="shrink-0 grow md:w-55 xl:grow-0">
+                  {sortByControl}
+                </div>
+              </div>
+
+              <div className="grow xl:w-[320px] xl:grow-0">{filterControl}</div>
+            </div>
+          </>
+        )}
+      </div>
     </section>
   )
 }
@@ -1915,7 +1963,7 @@ function LabeledSelect({
   ...props
 }: ComponentProps<typeof Select> & { label: string }) {
   return (
-    <label className="min-w-48 space-y-1.5">
+    <label className="min-w-0 space-y-1.5 md:min-w-[220px]">
       <span className="text-sm font-semibold text-[#d8d8d8]">{label}</span>
       <Select {...props} className="border-[#3a3a3a] bg-black text-white">
         {children}
