@@ -171,7 +171,6 @@ prod-up:
     just prod-certs
     {{prod-compose}} up -d db traefik
     {{prod-compose}} --profile jobs run --rm migrate
-    {{prod-compose}} --profile jobs run --rm ingest
     {{prod-compose}} up -d api web
 
 prod-down:
