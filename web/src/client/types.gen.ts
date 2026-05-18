@@ -139,6 +139,7 @@ export type DeckDetailDto = {
     description: null | string;
     visibility: DeckVisibility;
     isArchived: boolean;
+    legality: DeckLegalityDto;
     categories: Array<DeckCategoryDto>;
     cards: Array<DeckCardDto>;
     createdAt: string;
@@ -164,6 +165,19 @@ export type DeckFolderNodeDto = {
     updatedAt: string;
     children: Array<DeckFolderNodeDto>;
     decks: Array<DeckListItemDto>;
+};
+
+export type DeckLegalityDto = {
+    isLegal: boolean;
+    requirements: Array<DeckLegalityRequirementDto>;
+};
+
+export type DeckLegalityRequirementDto = {
+    key: string;
+    label: string;
+    description: string;
+    isSatisfied: boolean;
+    failureReason: null | string;
 };
 
 export type DeckListItemDto = {

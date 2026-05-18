@@ -40,10 +40,22 @@ public sealed record DeckDetailDto(
     string? Description,
     DeckVisibility Visibility,
     bool IsArchived,
+    DeckLegalityDto Legality,
     IReadOnlyList<DeckCategoryDto> Categories,
     IReadOnlyList<DeckCardDto> Cards,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
+
+public sealed record DeckLegalityDto(
+    bool IsLegal,
+    IReadOnlyList<DeckLegalityRequirementDto> Requirements);
+
+public sealed record DeckLegalityRequirementDto(
+    string Key,
+    string Label,
+    string Description,
+    bool IsSatisfied,
+    string? FailureReason);
 
 public sealed record DeckCategoryDto(
     Guid Id,

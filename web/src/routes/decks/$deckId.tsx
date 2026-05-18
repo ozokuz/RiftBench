@@ -19,6 +19,7 @@ import {
   Plus,
   Search,
   Settings,
+  X,
 } from "lucide-react"
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core"
 import type { ComponentProps, FormEvent, KeyboardEvent } from "react"
@@ -33,6 +34,7 @@ import type {
   DeckCategoryDto,
   DeckDetailDto,
   DeckFolderNodeDto,
+  DeckLegalityDto,
   DeckVisibility,
   DomainFilterMode,
 } from "@/client/types.gen"
@@ -66,6 +68,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/lib/auth"
+import { evaluateDeckLegality } from "@/lib/deck-legality"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/decks/$deckId")({
@@ -565,6 +568,7 @@ function DeckEditor({
     [cards, categories, filter, groupMode, sortMode]
   )
   const deckStats = useMemo(() => buildDeckStats(cards), [cards])
+  const legality = useMemo(() => evaluateDeckLegality(cards), [cards])
   const draggedCard = draggedCardId
     ? cards.find((card) => card.cardId === draggedCardId)
     : undefined
@@ -907,6 +911,7 @@ function DeckEditor({
             deck={deck}
             isOwner={isOwner}
             totalQuantity={totalQuantity}
+            legality={legality}
             isSaving={saveMutation.isPending}
             hasUnsavedChanges={dirtyRef.current}
             onSettingsClick={() => setIsSettingsOpen(true)}
@@ -1025,6 +1030,7 @@ function DeckHeader({
   deck,
   isOwner,
   totalQuantity,
+  legality,
   isSaving,
   hasUnsavedChanges,
   onSettingsClick,
@@ -1032,12 +1038,11 @@ function DeckHeader({
   deck: DeckDetailDto
   isOwner: boolean
   totalQuantity: number
+  legality: DeckLegalityDto
   isSaving: boolean
   hasUnsavedChanges: boolean
   onSettingsClick?: () => void
 }) {
-  const isLegal = totalQuantity === 40
-
   return (
     <section className="bg-[#202020] py-5">
       <div
@@ -1057,15 +1062,7 @@ function DeckHeader({
           </div>
           <div className="flex flex-wrap items-center gap-3 text-base">
             <span>Deck Size: {totalQuantity}</span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5",
-                isLegal ? "text-emerald-500" : "text-amber-400"
-              )}
-            >
-              <Check className="size-5" />
-              {isLegal ? "Legal" : "Needs 40"}
-            </span>
+            <DeckLegalityButton legality={legality} />
             {isOwner ? (
               <span className="text-sm text-muted-foreground">
                 {isSaving
@@ -1090,6 +1087,102 @@ function DeckHeader({
         ) : null}
       </div>
     </section>
+  )
+}
+
+function DeckLegalityButton({ legality }: { legality: DeckLegalityDto }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        type="button"
+        className={cn(
+          "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-colors",
+          legality.isLegal
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+            : "border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15"
+        )}
+        onClick={() => setOpen(true)}
+      >
+        {legality.isLegal ? (
+          <Check className="size-4" />
+        ) : (
+          <X className="size-4" />
+        )}
+        {legality.isLegal ? "Legal" : "Not legal"}
+      </button>
+      <DeckLegalityDialog
+        legality={legality}
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
+  )
+}
+
+function DeckLegalityDialog({
+  legality,
+  open,
+  onOpenChange,
+}: {
+  legality: DeckLegalityDto
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl border-[#2f2f2f] bg-[#222222] p-6 text-white">
+        <DialogTitle className="text-2xl font-semibold tracking-normal">
+          Deck legality
+        </DialogTitle>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {legality.isLegal
+              ? "This deck currently satisfies every Riftbound deck-building requirement."
+              : "This deck is currently missing one or more Riftbound deck-building requirements."}
+          </p>
+          <div className="space-y-3">
+            {legality.requirements.map((requirement) => (
+              <div
+                key={requirement.key}
+                className="rounded-xl border border-white/10 bg-black/20 p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={cn(
+                      "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",
+                      requirement.isSatisfied
+                        ? "bg-emerald-500/15 text-emerald-300"
+                        : "bg-amber-500/15 text-amber-200"
+                    )}
+                  >
+                    {requirement.isSatisfied ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <X className="size-4" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-base font-semibold">
+                      {requirement.label}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {requirement.description}
+                    </p>
+                    {requirement.failureReason ? (
+                      <p className="text-sm text-amber-200">
+                        {requirement.failureReason}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

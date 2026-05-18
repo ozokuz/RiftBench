@@ -17,7 +17,6 @@ public sealed class DeckService
     private const int NotesMaxLength = 4000;
 
     private readonly AppDbContext _db;
-
     public DeckService(AppDbContext db)
     {
         _db = db;
@@ -171,6 +170,7 @@ public sealed class DeckService
             Description = description,
             Visibility = request.Visibility,
             IsArchived = false,
+            IsLegal = false,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -236,6 +236,19 @@ public sealed class DeckService
         if (errors.HasErrors)
             return ServiceResult<DeckDetailDto>.BadRequest(errors.ToDictionary());
 
+        var requestedCardIds = request.Cards
+            .Select(card => card.CardId)
+            .ToHashSet();
+        var cardEntitiesById = await _db.Cards
+            .AsNoTracking()
+            .Include(card => card.Domains)
+            .Where(card => requestedCardIds.Contains(card.Id))
+            .ToDictionaryAsync(card => card.Id, cancellationToken);
+        var legality = DeckLegalityEvaluator.Evaluate(
+            request.Cards
+                .Select(requestedCard => ToDeckLegalityCard(requestedCard, cardEntitiesById[requestedCard.CardId]))
+                .ToList());
+
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         var now = DateTimeOffset.UtcNow;
@@ -266,10 +279,6 @@ public sealed class DeckService
                 categoriesById[category.Id] = category;
             }
         }
-
-        var requestedCardIds = request.Cards
-            .Select(card => card.CardId)
-            .ToHashSet();
 
         foreach (var deckCard in deck.Cards.Where(card => !requestedCardIds.Contains(card.CardId)).ToList())
         {
@@ -306,6 +315,7 @@ public sealed class DeckService
             _db.DeckCategories.Remove(category);
         }
 
+        deck.IsLegal = legality.IsLegal;
         deck.UpdatedAt = now;
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -747,6 +757,7 @@ public sealed class DeckService
             deck.Description,
             deck.Visibility,
             deck.IsArchived,
+            DeckLegalityEvaluator.Evaluate(deck.Cards.Select(ToDeckLegalityCard).ToList()),
             categories,
             cards,
             deck.CreatedAt,
@@ -789,6 +800,34 @@ public sealed class DeckService
             card.AlternateArt,
             card.Overnumbered,
             card.Signature);
+    }
+
+    private static DeckLegalityCard ToDeckLegalityCard(DeckCard deckCard)
+    {
+        return new DeckLegalityCard(
+            deckCard.CardId,
+            deckCard.Card.Name,
+            deckCard.Card.Type,
+            deckCard.Card.Supertype,
+            deckCard.Quantity,
+            deckCard.Card.Domains
+                .OrderBy(domain => domain.Domain)
+                .Select(domain => domain.Domain)
+                .ToList());
+    }
+
+    private static DeckLegalityCard ToDeckLegalityCard(UpsertDeckCardRequest requestCard, Card card)
+    {
+        return new DeckLegalityCard(
+            requestCard.CardId,
+            card.Name,
+            card.Type,
+            card.Supertype,
+            requestCard.Quantity,
+            card.Domains
+                .OrderBy(domain => domain.Domain)
+                .Select(domain => domain.Domain)
+                .ToList());
     }
 
     private static string? ValidateRequiredText(

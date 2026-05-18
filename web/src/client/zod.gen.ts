@@ -123,6 +123,19 @@ export const zDeckFolderDto = z.object({
     updatedAt: z.iso.datetime()
 });
 
+export const zDeckLegalityRequirementDto = z.object({
+    key: z.string(),
+    label: z.string(),
+    description: z.string(),
+    isSatisfied: z.boolean(),
+    failureReason: z.string().nullable()
+});
+
+export const zDeckLegalityDto = z.object({
+    isLegal: z.boolean(),
+    requirements: z.array(zDeckLegalityRequirementDto)
+});
+
 export const zDeckVisibility = z.enum([
     'Private',
     'Unlisted',
@@ -145,6 +158,7 @@ export const zDeckDetailDto = z.object({
     description: z.string().nullable(),
     visibility: zDeckVisibility,
     isArchived: z.boolean(),
+    legality: zDeckLegalityDto,
     categories: z.array(zDeckCategoryDto),
     cards: z.array(zDeckCardDto),
     createdAt: z.iso.datetime(),

@@ -1527,6 +1527,7 @@
           "description",
           "visibility",
           "isArchived",
+          "legality",
           "categories",
           "cards",
           "createdAt",
@@ -1569,6 +1570,9 @@
           },
           "isArchived": {
             "type": "boolean"
+          },
+          "legality": {
+            "$ref": "#/components/schemas/DeckLegalityDto"
           },
           "categories": {
             "type": "array",
@@ -1686,6 +1690,54 @@
             "items": {
               "$ref": "#/components/schemas/DeckListItemDto"
             }
+          }
+        }
+      },
+      "DeckLegalityDto": {
+        "required": [
+          "isLegal",
+          "requirements"
+        ],
+        "type": "object",
+        "properties": {
+          "isLegal": {
+            "type": "boolean"
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeckLegalityRequirementDto"
+            }
+          }
+        }
+      },
+      "DeckLegalityRequirementDto": {
+        "required": [
+          "key",
+          "label",
+          "description",
+          "isSatisfied",
+          "failureReason"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isSatisfied": {
+            "type": "boolean"
+          },
+          "failureReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

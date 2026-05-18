@@ -23,6 +23,7 @@ public sealed class Deck
     public DeckVisibility Visibility { get; set; } = DeckVisibility.Private;
 
     public bool IsArchived { get; set; }
+    public bool IsLegal { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

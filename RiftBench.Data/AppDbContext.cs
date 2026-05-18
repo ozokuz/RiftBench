@@ -360,6 +360,9 @@ public class AppDbContext(DbContextOptions options)
             entity.Property(x => x.IsArchived)
                 .HasColumnName("is_archived");
 
+            entity.Property(x => x.IsLegal)
+                .HasColumnName("is_legal");
+
             entity.Property(x => x.CreatedAt)
                 .HasColumnName("created_at");
 
