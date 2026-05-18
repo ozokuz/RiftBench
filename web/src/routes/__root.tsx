@@ -18,35 +18,37 @@ client.setConfig({
   baseUrl: import.meta.env.VITE_API_BASE,
 })
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "TanStack Start Starter",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-  }),
-  notFoundComponent: () => (
-    <div className="container mx-auto p-4 pt-16">
-      <h1>404</h1>
-      <p>The requested page could not be found.</p>
-    </div>
-  ),
-  shellComponent: RootDocument,
-})
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
+  {
+    head: () => ({
+      meta: [
+        {
+          charSet: "utf-8",
+        },
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1",
+        },
+        {
+          title: "TanStack Start Starter",
+        },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+      ],
+    }),
+    notFoundComponent: () => (
+      <div className="container mx-auto p-4 pt-16">
+        <h1>404</h1>
+        <p>The requested page could not be found.</p>
+      </div>
+    ),
+    shellComponent: RootDocument,
+  }
+)
 
 function UserArea() {
   const { user, isAuthenticated } = useAuth()
@@ -92,19 +94,23 @@ function Shell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <footer className="bg-[#333333] text-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between p-4">
-          <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between p-4 md:flex-row">
+          <div className="flex items-center justify-center gap-2 text-center text-sm text-muted-foreground md:flex-col md:gap-0">
             <span className="text-lg font-semibold">RiftBench</span>
             <span className="text-sm">
               &copy; Ozoku {new Date().getFullYear()}
             </span>
           </div>
           <div className="text-center text-sm text-muted-foreground">
-            <p>
-              RiftBench was created under Riot Games' "Legal Jibber Jabber"
-              policy using assets
-              <br /> owned by Riot Games. Riot Games does not endorse or sponsor
-              this project.
+            <p className="flex-col md:flex">
+              <span>
+                RiftBench was created under Riot Games' "Legal Jibber Jabber"
+                policy using assets
+              </span>
+              <span>
+                owned by Riot Games. Riot Games does not endorse or sponsor this
+                project.
+              </span>
             </p>
           </div>
         </div>

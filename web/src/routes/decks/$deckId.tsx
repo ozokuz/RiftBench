@@ -1116,7 +1116,7 @@ function EnergyCurveCard({
   curve: Array<EnergyCurvePoint>
 }) {
   return (
-    <section>
+    <section className="min-w-0">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-2xl font-semibold text-white">Energy Curve</h3>
@@ -1128,11 +1128,11 @@ function EnergyCurveCard({
 
       <ChartContainer
         config={ENERGY_CURVE_CHART_CONFIG}
-        className="h-[320px] w-full rounded-xl bg-[#373737] p-3"
+        className="h-[320px] w-full overflow-hidden rounded-xl bg-[#373737] p-3"
       >
         <BarChart
           data={curve}
-          margin={{ top: 18, right: 12, left: -20, bottom: 0 }}
+          margin={{ top: 18, right: 8, left: 0, bottom: 0 }}
         >
           <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
           <XAxis
@@ -1167,7 +1167,7 @@ function EnergyCurveCard({
             dataKey="quantity"
             fill="var(--color-quantity)"
             radius={[6, 6, 0, 0]}
-            barSize={36}
+            maxBarSize={36}
           />
         </BarChart>
       </ChartContainer>
@@ -1181,7 +1181,7 @@ function DomainStatsGrid({ stats }: { stats: Array<DomainStat> }) {
   )
 
   return (
-    <section>
+    <section className="min-w-0">
       <h3 className="text-2xl font-semibold text-white">Power / Runes</h3>
       {visibleStats.length > 0 ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
