@@ -23,7 +23,7 @@ type NewlineToken = {
 
 export type CardTextToken = TextToken | KeywordToken | IconToken | NewlineToken
 
-type IconMetadata = {
+export type IconMetadata = {
   src: string
   label: string
   invertToWhite: boolean
@@ -63,23 +63,143 @@ export const SUPPORTED_KEYWORDS = new Set([
   "STUN",
 ])
 
-export const ICON_MAP: Record<string, IconMetadata> = {
-  rb_exhaust: {
+const DOMAIN_ICON_NAMES = [
+  "Body",
+  "Calm",
+  "Chaos",
+  "Fury",
+  "Mind",
+  "Order",
+] as const
+
+const ICON_ASSET_MAP: Record<string, IconMetadata> = {
+  tap: {
     src: "/icons/other/Tap.png",
     label: "Exhaust",
     invertToWhite: true,
   },
-  rb_rune_rainbow: {
+  rainbowrune: {
     src: "/icons/other/RainbowRune.png",
     label: "Add any rune",
     invertToWhite: false,
   },
+  swordiconrb: {
+    src: "/icons/other/SwordIconRB.png",
+    label: "Might",
+    invertToWhite: true,
+  },
+  body: {
+    src: "/icons/domain/Body.png",
+    label: "Body rune",
+    invertToWhite: true,
+  },
+  calm: {
+    src: "/icons/domain/Calm.png",
+    label: "Calm rune",
+    invertToWhite: true,
+  },
+  chaos: {
+    src: "/icons/domain/Chaos.png",
+    label: "Chaos rune",
+    invertToWhite: true,
+  },
+  fury: {
+    src: "/icons/domain/Fury.png",
+    label: "Fury rune",
+    invertToWhite: true,
+  },
+  mind: {
+    src: "/icons/domain/Mind.png",
+    label: "Mind rune",
+    invertToWhite: true,
+  },
+  order: {
+    src: "/icons/domain/Order.png",
+    label: "Order rune",
+    invertToWhite: true,
+  },
+  common: {
+    src: "/icons/rarity/Common.png",
+    label: "Common",
+    invertToWhite: true,
+  },
+  uncommon: {
+    src: "/icons/rarity/Uncommon.png",
+    label: "Uncommon",
+    invertToWhite: true,
+  },
+  rare: {
+    src: "/icons/rarity/Rare.png",
+    label: "Rare",
+    invertToWhite: true,
+  },
+  epic: {
+    src: "/icons/rarity/Epic.png",
+    label: "Epic",
+    invertToWhite: true,
+  },
+  overnumbered: {
+    src: "/icons/rarity/OverNumbered.png",
+    label: "Overnumbered",
+    invertToWhite: true,
+  },
+  championunit: {
+    src: "/icons/supertype/ChampionUnit.png",
+    label: "Champion unit",
+    invertToWhite: true,
+  },
+  battlefield: {
+    src: "/icons/type/Battlefield.png",
+    label: "Battlefield",
+    invertToWhite: true,
+  },
+  gear: {
+    src: "/icons/type/Gear.png",
+    label: "Gear",
+    invertToWhite: true,
+  },
+  legend: {
+    src: "/icons/type/Legend.png",
+    label: "Legend",
+    invertToWhite: true,
+  },
+  rune: {
+    src: "/icons/type/Rune.png",
+    label: "Rune",
+    invertToWhite: true,
+  },
+  spell: {
+    src: "/icons/type/Spell.png",
+    label: "Spell",
+    invertToWhite: true,
+  },
+  unit: {
+    src: "/icons/type/Unit.png",
+    label: "Unit",
+    invertToWhite: true,
+  },
+}
+
+export const ICON_MAP: Record<string, IconMetadata> = {
+  rb_exhaust: ICON_ASSET_MAP.tap,
+  rb_rune_rainbow: ICON_ASSET_MAP.rainbowrune,
+  rb_might: ICON_ASSET_MAP.swordiconrb,
+  ...Object.fromEntries(
+    DOMAIN_ICON_NAMES.map((name) => [
+      `rb_rune_${name.toLowerCase()}`,
+      ICON_ASSET_MAP[name.toLowerCase()],
+    ])
+  ),
 }
 
 export const FALLBACK_ICON: IconMetadata = {
   src: "/icons/other/SwordIconRB.png",
   label: "Card text icon",
   invertToWhite: true,
+}
+
+export function resolveIconMetadata(shortcode: string): IconMetadata {
+  return ICON_MAP[shortcode] ?? FALLBACK_ICON
 }
 
 export function resolveCardTextSource(
@@ -190,7 +310,7 @@ export function renderCardText(text: string): ReactNode {
       )
     }
 
-    const icon = ICON_MAP[token.value] ?? FALLBACK_ICON
+    const icon = resolveIconMetadata(token.value)
 
     return (
       <span

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest"
 import {
   normalizeRichText,
   renderCardText,
+  resolveIconMetadata,
   resolveCardTextSource,
   tokenizeCardText,
 } from "@/lib/card-text"
@@ -56,6 +57,22 @@ describe("card text rendering", () => {
     expect(container.innerHTML).not.toContain(":rb_unknown:")
     expect(container.textContent).toContain("Gain ")
     expect(container.textContent).toContain(" now.")
+  })
+
+  it("maps domain rune tokens to the domain icon set", () => {
+    const icon = resolveIconMetadata("rb_rune_body")
+
+    expect(icon.src).toBe("/icons/domain/Body.png")
+    expect(icon.label).toBe("Body rune")
+    expect(icon.invertToWhite).toBe(true)
+  })
+
+  it("maps might tokens to the sword icon", () => {
+    const icon = resolveIconMetadata("rb_might")
+
+    expect(icon.src).toBe("/icons/other/SwordIconRB.png")
+    expect(icon.label).toBe("Might")
+    expect(icon.invertToWhite).toBe(true)
   })
 
   it("renders supported keywords as badges", () => {
