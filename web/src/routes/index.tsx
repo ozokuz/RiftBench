@@ -5,8 +5,12 @@ export const Route = createFileRoute("/")({ component: App })
 
 function App() {
   return (
-    <div className="mt-8 space-y-5">
-      <p className="text-6xl font-medium text-muted-foreground">RiftBench</p>
+    <div className="mt-8 space-y-6">
+      <img
+        alt="RiftBench banner"
+        className="w-full max-w-md rounded-2xl border border-border/60 shadow-sm"
+        src="/brand/banner.png"
+      />
       <h1 className="text-4xl font-semibold tracking-normal">
         Build, browse, and tune Riftbound decks.
       </h1>

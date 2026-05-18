@@ -1,3 +1,5 @@
+![RiftBench banner](./logo/RiftBenchBanner.png)
+
 # RiftBench
 
 RiftBench is a Riftbound deck-building and browsing application. It combines a React/TanStack web app, an ASP.NET Core API, a PostgreSQL data model, and an ingestion job for importing card data, with support for authenticated personal deck libraries, public deck browsing, and interactive deck editing.
