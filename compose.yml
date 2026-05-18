@@ -2,7 +2,7 @@ name: riftbench
 
 services:
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.7
     restart: unless-stopped
     command:
       - --api.dashboard=true
