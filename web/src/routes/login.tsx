@@ -17,7 +17,7 @@ const api = import.meta.env.VITE_API_BASE
 function RouteComponent() {
   const { redirect } = Route.useSearch()
   return (
-    <div className="flex w-full justify-center px-4 py-8 sm:py-12">
+    <div className="flex w-full justify-center py-8 sm:py-12">
       <div className="flex w-full max-w-xl flex-col gap-6">
         <div className="space-y-2">
           <Link

@@ -5,6 +5,7 @@ import {
   Link,
   Scripts,
   createRootRouteWithContext,
+  useRouterState,
   useNavigate,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
@@ -274,6 +275,11 @@ function UserArea() {
 }
 
 function Shell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const isDeckEditor = pathname.startsWith("/decks/")
+
   return (
     <div className="flex min-h-dvh flex-col">
       <nav className="bg-[#333333] px-4 text-white">
@@ -287,7 +293,12 @@ function Shell({ children }: { children: ReactNode }) {
           <UserArea />
         </div>
       </nav>
-      <main className="mx-auto flex w-full max-w-7xl grow flex-col">
+      <main
+        className={cn(
+          "mx-auto flex w-full max-w-7xl grow flex-col",
+          isDeckEditor ? "px-0 py-0" : "px-4 py-4 sm:px-6 sm:py-6"
+        )}
+      >
         {children}
       </main>
       <footer className="bg-[#333333] text-white">
