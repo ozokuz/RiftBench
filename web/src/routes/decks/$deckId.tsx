@@ -570,11 +570,15 @@ function DeckEditor({
   )
   const deckStats = useMemo(() => buildDeckStats(cards), [cards])
   const legality = useMemo(() => evaluateDeckLegality(cards), [cards])
+  const deckCardsById = useMemo(
+    () => new Map(cards.map((card) => [card.cardId, card])),
+    [cards]
+  )
   const draggedCard = draggedCardId
     ? cards.find((card) => card.cardId === draggedCardId)
     : undefined
   const selectedDeckCard = selectedDetailCardId
-    ? (cards.find((card) => card.cardId === selectedDetailCardId) ?? null)
+    ? deckCardsById.get(selectedDetailCardId) ?? null
     : null
 
   useEffect(() => {
@@ -986,7 +990,10 @@ function DeckEditor({
         <CardSearchDialog
           open={isCardSearchOpen}
           onOpenChange={setIsCardSearchOpen}
+          deckCardsById={deckCardsById}
           onAddCard={addCard}
+          onChangeQuantity={changeDeckCardQuantity}
+          onOpenCardDetails={setSelectedDetailCardId}
         />
         <CreateCategoryDialog
           open={isCreateCategoryDialogOpen}
@@ -1009,6 +1016,7 @@ function DeckEditor({
           cardId={selectedDetailCardId}
           deckCard={selectedDeckCard}
           canEditQuantity={isOwner}
+          onAddCard={addCard}
           onChangeQuantity={changeDeckCardQuantity}
           onOpenChange={(open) => {
             if (!open) {
@@ -1679,11 +1687,17 @@ const DEFAULT_CARD_SEARCH_FILTERS: CardSearchFilters = {
 function CardSearchDialog({
   open,
   onOpenChange,
+  deckCardsById,
   onAddCard,
+  onChangeQuantity,
+  onOpenCardDetails,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  deckCardsById: Map<string, EditableDeckCard>
   onAddCard: (card: CardSummaryDto) => void
+  onChangeQuantity: (cardId: string, delta: number) => void
+  onOpenCardDetails: (cardId: string) => void
 }) {
   const [filters, setFilters] = useState<CardSearchFilters>(
     DEFAULT_CARD_SEARCH_FILTERS
@@ -1691,6 +1705,7 @@ function CardSearchDialog({
   const [submittedFilters, setSubmittedFilters] =
     useState<CardSearchFilters | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null)
   const searchQuery = useQuery({
     ...getCardsOptions({
       query: submittedFilters ? toCardSearchQuery(submittedFilters) : undefined,
@@ -1742,9 +1757,17 @@ function CardSearchDialog({
     setSubmittedFilters(snapshotCardSearchFilters(filters))
   }
 
-  function handleAddSearchResult(card: CardSummaryDto) {
-    onAddCard(card)
-    onOpenChange(false)
+  function handleSearchResultQuantityChange(card: CardSummaryDto, delta: number) {
+    const existingDeckCard = deckCardsById.get(card.id)
+
+    if (!existingDeckCard) {
+      if (delta > 0) {
+        onAddCard(card)
+      }
+      return
+    }
+
+    onChangeQuantity(card.id, delta)
   }
 
   return (
@@ -1873,34 +1896,33 @@ function CardSearchDialog({
             <p className="text-sm text-destructive">Unable to search cards.</p>
           ) : null}
           {submittedFilters && !searchQuery.isLoading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {(searchQuery.data?.items ?? []).map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="group overflow-hidden rounded-md bg-black text-left ring-1 ring-white/10 transition hover:ring-primary"
-                  onClick={() => handleAddSearchResult(card)}
-                >
-                  {card.imageUrl ? (
-                    <img
-                      src={card.imageUrl}
-                      alt={card.name}
-                      className="aspect-[0.714/1] w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex aspect-[0.714/1] items-center justify-center p-3 text-center text-sm">
-                      {card.name}
-                    </div>
-                  )}
-                  <div className="p-2">
-                    <p className="line-clamp-1 text-sm font-medium">
-                      {card.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{card.type}</p>
-                  </div>
-                </button>
-              ))}
+            <div
+              className="flex flex-wrap items-start gap-3"
+              onMouseLeave={() => setHoveredCardId(null)}
+            >
+              {(searchQuery.data?.items ?? []).map((card) => {
+                const deckCard = toSearchResultDeckCard(
+                  card,
+                  deckCardsById.get(card.id)
+                )
+
+                return (
+                  <DeckCardTile
+                    key={card.id}
+                    deckCard={deckCard}
+                    canDrag={false}
+                    isDragSource={false}
+                    isHovered={card.id === hoveredCardId}
+                    stackOffset={0}
+                    canDecrease={deckCard.quantity > 0}
+                    onHover={() => setHoveredCardId(card.id)}
+                    onChangeQuantity={(_, delta) =>
+                      handleSearchResultQuantityChange(card, delta)
+                    }
+                    onOpenCardDetails={onOpenCardDetails}
+                  />
+                )
+              })}
             </div>
           ) : null}
         </section>
@@ -1913,12 +1935,14 @@ function CardDetailsDialog({
   cardId,
   deckCard,
   canEditQuantity = false,
+  onAddCard,
   onChangeQuantity,
   onOpenChange,
 }: {
   cardId: string | null
   deckCard?: EditableDeckCard | null
   canEditQuantity?: boolean
+  onAddCard?: (card: CardSummaryDto) => void
   onChangeQuantity?: (cardId: string, delta: number) => void
   onOpenChange: (open: boolean) => void
 }) {
@@ -1940,6 +1964,22 @@ function CardDetailsDialog({
     enabled: cardId !== null,
   })
   const card = detailQuery.data
+  const quantity = deckCard?.quantity ?? 0
+
+  function handleChangeQuantity(delta: number) {
+    if (!card) {
+      return
+    }
+
+    if (!deckCard) {
+      if (delta > 0) {
+        onAddCard?.(card)
+      }
+      return
+    }
+
+    onChangeQuantity?.(deckCard.cardId, delta)
+  }
 
   return (
     <Dialog open={cardId !== null} onOpenChange={onOpenChange}>
@@ -1972,24 +2012,25 @@ function CardDetailsDialog({
                 )}
               </div>
 
-              {canEditQuantity && deckCard && onChangeQuantity ? (
+              {canEditQuantity && card ? (
                 <div className="mt-4 flex items-center justify-center gap-3 rounded-2xl bg-[#333333] px-4 py-4">
                   <button
                     type="button"
-                    className="flex size-10 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/20 transition hover:bg-[#202020]"
+                    className="flex size-10 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/20 transition hover:bg-[#202020] disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`Decrease ${card.name} count`}
-                    onClick={() => onChangeQuantity(deckCard.cardId, -1)}
+                    disabled={quantity <= 0}
+                    onClick={() => handleChangeQuantity(-1)}
                   >
                     <Minus className="size-4" />
                   </button>
                   <div className="min-w-16 rounded-full bg-black/35 px-4 py-2 text-center text-base font-semibold ring-1 ring-white/10 sm:text-lg">
-                    {deckCard.quantity}
+                    {quantity}
                   </div>
                   <button
                     type="button"
                     className="flex size-10 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/20 transition hover:bg-[#202020]"
                     aria-label={`Increase ${card.name} count`}
-                    onClick={() => onChangeQuantity(deckCard.cardId, 1)}
+                    onClick={() => handleChangeQuantity(1)}
                   >
                     <Plus className="size-4" />
                   </button>
@@ -2320,6 +2361,7 @@ function DeckCardTile({
   isDragSource,
   isHovered,
   stackOffset,
+  canDecrease = true,
   onHover,
   onChangeQuantity,
   onOpenCardDetails,
@@ -2329,6 +2371,7 @@ function DeckCardTile({
   isDragSource: boolean
   isHovered: boolean
   stackOffset: number
+  canDecrease?: boolean
   onHover: () => void
   onChangeQuantity: (cardId: string, delta: number) => void
   onOpenCardDetails: (cardId: string) => void
@@ -2349,13 +2392,24 @@ function DeckCardTile({
       {...draggable.attributes}
       {...draggable.listeners}
       onMouseEnter={onHover}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          if (!draggable.isDragging) {
+            onOpenCardDetails(deckCard.cardId)
+          }
+        }
+      }}
       onClick={() => {
         if (!draggable.isDragging) {
           onOpenCardDetails(deckCard.cardId)
         }
       }}
+      role="button"
+      tabIndex={0}
       className={cn(
-        "relative overflow-hidden rounded-md bg-black shadow-lg ring-1 shadow-black/40 ring-white/10 transition-[margin,opacity,box-shadow] duration-150",
+        "relative overflow-hidden rounded-md bg-black shadow-lg ring-1 shadow-black/40 ring-white/10 transition-[margin,opacity,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+        getDeckCardWidthClass(deckCard.card.type),
         canDrag && "touch-none",
         isDragSource && "opacity-20",
         isHovered && "shadow-2xl ring-primary"
@@ -2371,8 +2425,9 @@ function DeckCardTile({
         >
           <button
             type="button"
-            className="flex size-7 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/30 transition hover:bg-[#202020]"
+            className="flex size-7 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/30 transition hover:bg-[#202020] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={`Decrease ${deckCard.card.name} count`}
+            disabled={!canDecrease}
             onClick={() => onChangeQuantity(deckCard.cardId, -1)}
           >
             <Minus className="size-4" />
@@ -2396,7 +2451,7 @@ function DeckCardDragPreview({ deckCard }: { deckCard: EditableDeckCard }) {
     <article
       className={cn(
         "relative overflow-hidden rounded-md bg-black shadow-2xl ring-2 ring-primary/70",
-        deckCard.card.type === "Battlefield" ? "w-[300px]" : "w-[180px]"
+        getDeckCardWidthClass(deckCard.card.type)
       )}
     >
       <DeckCardVisual deckCard={deckCard} />
@@ -2413,7 +2468,10 @@ function DeckCardPlaceholder({
 }) {
   return (
     <article
-      className="pointer-events-none relative overflow-hidden rounded-md bg-black opacity-35 ring-2 ring-primary/60 transition-[margin] duration-150"
+      className={cn(
+        "pointer-events-none relative overflow-hidden rounded-md bg-black opacity-35 ring-2 ring-primary/60 transition-[margin] duration-150",
+        getDeckCardWidthClass(deckCard.card.type)
+      )}
       style={{ marginTop: stackOffset }}
     >
       <DeckCardVisual deckCard={deckCard} />
@@ -2451,6 +2509,28 @@ function DeckCardVisual({ deckCard }: { deckCard: EditableDeckCard }) {
       )}
     </>
   )
+}
+
+function getDeckCardWidthClass(type: CardType) {
+  return type === "Battlefield" ? "w-[300px]" : "w-[180px]"
+}
+
+function toSearchResultDeckCard(
+  card: CardSummaryDto,
+  existingDeckCard?: EditableDeckCard
+): EditableDeckCard {
+  if (existingDeckCard) {
+    return existingDeckCard
+  }
+
+  return {
+    cardId: card.id,
+    categoryId: "",
+    quantity: 0,
+    sortOrder: -1,
+    notes: null,
+    card,
+  }
 }
 
 function getStackOffset({
